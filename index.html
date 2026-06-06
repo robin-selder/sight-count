@@ -14,7 +14,6 @@
     --surface: #111111;
     --border: #222222;
     --accent: #e8ff47;
-    --accent-dim: #b8cc2a;
     --text: #f0f0f0;
     --text-muted: #555;
     --danger: #ff4747;
@@ -30,14 +29,13 @@
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* ── HOME SCREEN ── */
+  /* ── HOME ── */
   #home {
     height: 100vh;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0;
     position: relative;
     overflow: hidden;
   }
@@ -63,7 +61,6 @@
   }
 
   .eyebrow {
-    font-family: 'DM Mono', monospace;
     font-size: 11px;
     letter-spacing: 0.3em;
     color: var(--accent);
@@ -76,16 +73,13 @@
     font-family: 'Bebas Neue', sans-serif;
     font-size: clamp(72px, 18vw, 140px);
     line-height: 0.9;
-    letter-spacing: -0.02em;
     color: var(--text);
     text-align: center;
     opacity: 0;
     animation: fadeUp 0.6s 0.35s forwards;
   }
 
-  .logo span {
-    color: var(--accent);
-  }
+  .logo span { color: var(--accent); }
 
   .tagline {
     font-size: 12px;
@@ -108,23 +102,12 @@
     letter-spacing: 0.2em;
     text-transform: uppercase;
     cursor: pointer;
-    transition: transform 0.15s, background 0.15s;
     opacity: 0;
     animation: fadeUp 0.6s 0.65s forwards;
     position: relative;
     overflow: hidden;
+    transition: transform 0.15s;
   }
-
-  .start-btn::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: white;
-    opacity: 0;
-    transition: opacity 0.15s;
-  }
-
-  .start-btn:active::after { opacity: 0.15; }
   .start-btn:active { transform: scale(0.97); }
 
   .home-corner {
@@ -134,242 +117,10 @@
     letter-spacing: 0.15em;
   }
   .home-corner.tl { top: 20px; left: 20px; }
-  .home-corner.tr { top: 20px; right: 20px; text-align: right; }
+  .home-corner.tr { top: 20px; right: 20px; }
   .home-corner.bl { bottom: 20px; left: 20px; }
   .home-corner.br { bottom: 20px; right: 20px; }
 
-  /* ── CAMERA SCREEN ── */
-  #camera-screen {
-    display: none;
-    height: 100vh;
-    flex-direction: column;
-    background: #000;
-    position: relative;
-  }
-
-  #camera-screen.active { display: flex; }
-
-  .video-wrap {
-    position: relative;
-    flex: 1;
-    overflow: hidden;
-    background: #000;
-  }
-
-  #video {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    display: block;
-  }
-
-  #overlay-canvas {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
-  }
-
-  /* scanning line animation */
-  .scan-line {
-    position: absolute;
-    left: 0; right: 0;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--accent), transparent);
-    opacity: 0;
-    pointer-events: none;
-    animation: scan 2s linear infinite;
-  }
-
-  @keyframes scan {
-    0%   { top: 0%;   opacity: 0; }
-    5%   { opacity: 0.6; }
-    95%  { opacity: 0.6; }
-    100% { top: 100%; opacity: 0; }
-  }
-
-  /* corner brackets */
-  .bracket {
-    position: absolute;
-    width: 28px;
-    height: 28px;
-    border-color: var(--accent);
-    border-style: solid;
-    opacity: 0.7;
-    pointer-events: none;
-  }
-  .bracket.tl { top: 16px; left: 16px; border-width: 2px 0 0 2px; }
-  .bracket.tr { top: 16px; right: 16px; border-width: 2px 2px 0 0; }
-  .bracket.bl { bottom: 16px; left: 16px; border-width: 0 0 2px 2px; }
-  .bracket.br { bottom: 16px; right: 16px; border-width: 0 2px 2px 0; }
-
-  /* ── HUD BAR ── */
-  .hud-bar {
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    padding: 12px 16px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
-    pointer-events: none;
-  }
-
-  .hud-label {
-    font-size: 10px;
-    letter-spacing: 0.25em;
-    color: var(--accent);
-    text-transform: uppercase;
-  }
-
-  .fps-badge {
-    font-size: 10px;
-    color: var(--text-muted);
-    letter-spacing: 0.1em;
-  }
-
-  /* ── COUNT DISPLAY ── */
-  .count-display {
-    position: absolute;
-    bottom: 100px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    pointer-events: none;
-  }
-
-  .count-number {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(80px, 20vw, 120px);
-    line-height: 1;
-    color: var(--accent);
-    text-shadow: 0 0 40px rgba(232,255,71,0.3);
-    transition: transform 0.1s;
-  }
-
-  .count-number.bump {
-    transform: scale(1.08);
-  }
-
-  .count-label {
-    font-size: 10px;
-    letter-spacing: 0.3em;
-    color: rgba(232,255,71,0.6);
-    text-transform: uppercase;
-    margin-top: -8px;
-  }
-
-  /* ── BOTTOM CONTROLS ── */
-  .bottom-bar {
-    position: absolute;
-    bottom: 0; left: 0; right: 0;
-    padding: 16px 24px max(16px, env(safe-area-inset-bottom));
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
-  }
-
-  .status-dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: var(--accent);
-    box-shadow: 0 0 8px var(--accent);
-    animation: pulse 1.5s ease-in-out infinite;
-  }
-
-  .status-dot.error { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
-  .status-dot.idle  { background: var(--text-muted); box-shadow: none; animation: none; }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-  }
-
-  .status-text {
-    font-size: 10px;
-    letter-spacing: 0.15em;
-    color: var(--text-muted);
-    margin-left: 8px;
-  }
-
-  .status-row {
-    display: flex;
-    align-items: center;
-    gap: 0;
-  }
-
-  .stop-btn {
-    padding: 10px 24px;
-    background: transparent;
-    border: 1px solid rgba(255,255,255,0.15);
-    color: var(--text-muted);
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: border-color 0.2s, color 0.2s;
-  }
-
-  .stop-btn:active {
-    border-color: var(--danger);
-    color: var(--danger);
-  }
-
-  /* ── ERROR OVERLAY ── */
-  #error-overlay {
-    display: none;
-    position: absolute;
-    inset: 0;
-    background: var(--overlay-bg);
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 16px;
-    text-align: center;
-    padding: 32px;
-  }
-
-  #error-overlay.show { display: flex; }
-
-  .error-title {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: 32px;
-    color: var(--danger);
-    letter-spacing: 0.05em;
-  }
-
-  .error-msg {
-    font-size: 12px;
-    color: var(--text-muted);
-    line-height: 1.7;
-    max-width: 280px;
-  }
-
-  .retry-btn {
-    margin-top: 8px;
-    padding: 12px 32px;
-    background: var(--accent);
-    color: #0a0a0a;
-    border: none;
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    cursor: pointer;
-  }
-
-  /* ── ANIMATIONS ── */
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(16px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  /* ── API CONFIG MODAL ── */
   #config-btn {
     position: absolute;
     bottom: 20px; left: 20px;
@@ -385,6 +136,254 @@
     animation: fadeUp 0.6s 0.8s forwards;
   }
 
+  /* ── CAMERA SCREEN ── */
+  #camera-screen {
+    display: none;
+    height: 100vh;
+    flex-direction: column;
+    background: #000;
+    position: relative;
+  }
+  #camera-screen.active { display: flex; }
+
+  .video-wrap {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+    background: #000;
+  }
+
+  #video {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  /* result canvas shown after capture */
+  #result-canvas {
+    display: none;
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+  }
+  #result-canvas.show { display: block; }
+
+  /* corner brackets */
+  .bracket {
+    position: absolute;
+    width: 28px; height: 28px;
+    border-color: var(--accent);
+    border-style: solid;
+    opacity: 0.7;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  .bracket.tl { top: 16px; left: 16px;   border-width: 2px 0 0 2px; }
+  .bracket.tr { top: 16px; right: 16px;  border-width: 2px 2px 0 0; }
+  .bracket.bl { bottom: 16px; left: 16px;  border-width: 0 0 2px 2px; }
+  .bracket.br { bottom: 16px; right: 16px; border-width: 0 2px 2px 0; }
+
+  /* HUD */
+  .hud-bar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+    pointer-events: none;
+  }
+  .hud-label {
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+  .hud-mode {
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+  }
+
+  /* ── CAPTURE BUTTON ── */
+  .capture-bar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 20px 32px max(20px, env(safe-area-inset-bottom));
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
+  }
+
+  .capture-btn {
+    width: 72px; height: 72px;
+    border-radius: 50%;
+    border: 3px solid var(--accent);
+    background: transparent;
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.15s;
+    flex-shrink: 0;
+    margin: 0 auto;
+  }
+  .capture-btn::after {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    transition: transform 0.15s, opacity 0.15s;
+  }
+  .capture-btn:active { transform: scale(0.92); }
+  .capture-btn:active::after { opacity: 0.7; }
+
+  /* retake button — shown after capture */
+  .retake-btn {
+    display: none;
+    padding: 10px 22px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .retake-btn.show { display: block; }
+  .retake-btn:active { border-color: var(--accent); color: var(--accent); }
+
+  .stop-btn {
+    padding: 10px 22px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .stop-btn:active { border-color: var(--danger); color: var(--danger); }
+
+  /* ── RESULT OVERLAY ── */
+  #result-overlay {
+    display: none;
+    position: absolute;
+    top: 60px; left: 50%;
+    transform: translateX(-50%);
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+  }
+  #result-overlay.show { display: flex; }
+
+  .count-number {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(80px, 20vw, 120px);
+    line-height: 1;
+    color: var(--accent);
+    text-shadow: 0 0 40px rgba(232,255,71,0.4);
+    animation: countPop 0.25s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .count-label {
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: rgba(232,255,71,0.6);
+    text-transform: uppercase;
+    margin-top: -8px;
+  }
+
+  @keyframes countPop {
+    from { transform: scale(0.6); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
+  }
+
+  /* ── PROCESSING SPINNER ── */
+  #processing {
+    display: none;
+    position: absolute;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+    background: rgba(0,0,0,0.5);
+  }
+  #processing.show { display: flex; }
+
+  .spinner {
+    width: 40px; height: 40px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  .processing-label {
+    font-size: 11px;
+    letter-spacing: 0.25em;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── ERROR OVERLAY ── */
+  #error-overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: var(--overlay-bg);
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+    padding: 32px;
+  }
+  #error-overlay.show { display: flex; }
+  .error-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    color: var(--danger);
+    letter-spacing: 0.05em;
+  }
+  .error-msg {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.7;
+    max-width: 280px;
+  }
+  .retry-btn {
+    margin-top: 8px;
+    padding: 12px 32px;
+    background: var(--accent);
+    color: #0a0a0a;
+    border: none;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+  .err-back-btn {
+    padding: 10px 20px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  /* ── CONFIG MODAL ── */
   #config-modal {
     display: none;
     position: fixed;
@@ -395,9 +394,7 @@
     z-index: 100;
     padding: 24px;
   }
-
   #config-modal.show { display: flex; }
-
   .modal-box {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -405,7 +402,6 @@
     width: 100%;
     max-width: 420px;
   }
-
   .modal-title {
     font-family: 'Bebas Neue', sans-serif;
     font-size: 28px;
@@ -413,7 +409,6 @@
     margin-bottom: 24px;
     color: var(--accent);
   }
-
   .modal-label {
     font-size: 10px;
     letter-spacing: 0.2em;
@@ -422,7 +417,6 @@
     margin-bottom: 8px;
     display: block;
   }
-
   .modal-input {
     width: 100%;
     background: var(--bg);
@@ -435,14 +429,8 @@
     transition: border-color 0.2s;
     margin-bottom: 24px;
   }
-
   .modal-input:focus { border-color: var(--accent); }
-
-  .modal-actions {
-    display: flex;
-    gap: 12px;
-  }
-
+  .modal-actions { display: flex; gap: 12px; }
   .modal-save {
     flex: 1;
     padding: 12px;
@@ -455,7 +443,6 @@
     text-transform: uppercase;
     cursor: pointer;
   }
-
   .modal-cancel {
     padding: 12px 20px;
     background: transparent;
@@ -467,15 +454,19 @@
     text-transform: uppercase;
     cursor: pointer;
   }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
 </style>
 </head>
 <body>
 
-<!-- ── HOME SCREEN ── -->
+<!-- ── HOME ── -->
 <div id="home">
   <div class="home-corner tl">SIGHT COUNT</div>
   <div class="home-corner tr">v0.1.0</div>
-  <div class="home-corner bl">m8-server</div>
   <div class="home-corner br">YOLOv8s</div>
 
   <div class="home-content">
@@ -491,38 +482,49 @@
 <!-- ── CAMERA SCREEN ── -->
 <div id="camera-screen">
   <div class="video-wrap">
+
+    <!-- live viewfinder -->
     <video id="video" autoplay playsinline muted></video>
-    <canvas id="overlay-canvas"></canvas>
-    <div class="scan-line"></div>
+
+    <!-- result image with boxes drawn on it -->
+    <canvas id="result-canvas"></canvas>
+
     <div class="bracket tl"></div>
     <div class="bracket tr"></div>
     <div class="bracket bl"></div>
     <div class="bracket br"></div>
 
     <div class="hud-bar">
-      <div class="hud-label">Sight Count — Live</div>
-      <div class="fps-badge" id="fps-display">10 FPS</div>
+      <div class="hud-label">Sight Count</div>
+      <div class="hud-mode" id="hud-mode">READY</div>
     </div>
 
-    <div class="count-display">
-      <div class="count-number" id="count-number">—</div>
+    <!-- count shown after result -->
+    <div id="result-overlay">
+      <div class="count-number" id="count-number">0</div>
       <div class="count-label">items detected</div>
     </div>
 
-    <div class="bottom-bar">
-      <div class="status-row">
-        <div class="status-dot idle" id="status-dot"></div>
-        <div class="status-text" id="status-text">INITIALIZING</div>
-      </div>
-      <button class="stop-btn" onclick="stopCamera()">Stop</button>
+    <!-- processing spinner -->
+    <div id="processing">
+      <div class="spinner"></div>
+      <div class="processing-label">Analyzing…</div>
     </div>
 
+    <!-- error -->
     <div id="error-overlay">
-      <div class="error-title">Connection Error</div>
+      <div class="error-title">Error</div>
       <div class="error-msg" id="error-msg">Unable to reach the inference API.</div>
-      <button class="retry-btn" onclick="retryConnection()">Retry</button>
-      <button class="modal-cancel" style="margin-top:4px" onclick="stopCamera()">Back</button>
+      <button class="retry-btn" onclick="retake()">Retake</button>
+      <button class="err-back-btn" onclick="stopCamera()">Back</button>
     </div>
+
+    <div class="capture-bar">
+      <button class="stop-btn" onclick="stopCamera()">Back</button>
+      <button class="capture-btn" id="capture-btn" onclick="capture()" aria-label="Capture"></button>
+      <button class="retake-btn" id="retake-btn" onclick="retake()">Retake</button>
+    </div>
+
   </div>
 </div>
 
@@ -542,7 +544,6 @@
 
 <script>
   const DEFAULT_API = 'https://kiss-harold-gap-rainbow.trycloudflare.com';
-  const FRAME_INTERVAL = 100; // 10fps
   const BOX_COLORS = {
     bolt:   '#e8ff47',
     nut:    '#47e8ff',
@@ -552,20 +553,19 @@
   const DEFAULT_COLOR = '#e8ff47';
 
   let apiBase = localStorage.getItem('sight-count-api') || DEFAULT_API;
-  let stream = null;
-  let frameTimer = null;
-  let isRunning = false;
-  let inferring = false;
-  let lastCount = null;
+  let stream  = null;
 
-  const video       = document.getElementById('video');
-  const canvas      = document.getElementById('overlay-canvas');
-  const ctx         = canvas.getContext('2d');
-  const countEl     = document.getElementById('count-number');
-  const statusDot   = document.getElementById('status-dot');
-  const statusText  = document.getElementById('status-text');
-  const errorOverlay = document.getElementById('error-overlay');
-  const errorMsg    = document.getElementById('error-msg');
+  const video         = document.getElementById('video');
+  const resultCanvas  = document.getElementById('result-canvas');
+  const rctx          = resultCanvas.getContext('2d');
+  const captureBtn    = document.getElementById('capture-btn');
+  const retakeBtn     = document.getElementById('retake-btn');
+  const resultOverlay = document.getElementById('result-overlay');
+  const countEl       = document.getElementById('count-number');
+  const processing    = document.getElementById('processing');
+  const errorOverlay  = document.getElementById('error-overlay');
+  const errorMsg      = document.getElementById('error-msg');
+  const hudMode       = document.getElementById('hud-mode');
 
   // ── Config ──
   function showConfig() {
@@ -585,8 +585,7 @@
   async function startCamera() {
     document.getElementById('home').style.display = 'none';
     document.getElementById('camera-screen').classList.add('active');
-    errorOverlay.classList.remove('show');
-    setStatus('idle', 'STARTING CAMERA');
+    resetToViewfinder();
 
     try {
       stream = await navigator.mediaDevices.getUserMedia({
@@ -599,127 +598,122 @@
       });
       video.srcObject = stream;
       await video.play();
-      resizeCanvas();
-      window.addEventListener('resize', resizeCanvas);
-      isRunning = true;
-      setStatus('active', 'ANALYZING');
-      frameTimer = setInterval(captureAndInfer, FRAME_INTERVAL);
+      hudMode.textContent = 'READY';
     } catch (e) {
-      showError('Camera access denied or unavailable.', e);
+      showError('Camera access denied or unavailable. Check browser permissions.');
     }
   }
 
   function stopCamera() {
-    isRunning = false;
-    clearInterval(frameTimer);
     if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
-    window.removeEventListener('resize', resizeCanvas);
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
     document.getElementById('camera-screen').classList.remove('active');
     document.getElementById('home').style.display = '';
-    countEl.textContent = '—';
   }
 
-  function retryConnection() {
+  function resetToViewfinder() {
+    video.style.display = 'block';
+    resultCanvas.classList.remove('show');
+    resultOverlay.classList.remove('show');
+    processing.classList.remove('show');
     errorOverlay.classList.remove('show');
-    setStatus('active', 'ANALYZING');
+    captureBtn.style.display = 'block';
+    retakeBtn.classList.remove('show');
+    hudMode.textContent = 'READY';
   }
 
-  function resizeCanvas() {
-    canvas.width  = video.clientWidth;
-    canvas.height = video.clientHeight;
+  function retake() {
+    resetToViewfinder();
   }
 
-  function setStatus(state, label) {
-    statusDot.className = 'status-dot ' + (state === 'active' ? '' : state);
-    statusText.textContent = label;
-  }
+  // ── Capture & Infer ──
+  async function capture() {
+    if (!video.videoWidth) return;
 
-  // ── Inference ──
-  async function captureAndInfer() {
-    if (!isRunning || inferring) return;
-    inferring = true;
+    // Freeze: hide viewfinder, show processing
+    video.style.display = 'none';
+    captureBtn.style.display = 'none';
+    processing.classList.add('show');
+    hudMode.textContent = 'ANALYZING';
 
-    // Grab frame
+    // Snap frame to an offscreen canvas
     const snap = document.createElement('canvas');
-    snap.width  = video.videoWidth  || canvas.width;
-    snap.height = video.videoHeight || canvas.height;
-    snap.getContext('2d').drawImage(video, 0, 0, snap.width, snap.height);
+    snap.width  = video.videoWidth;
+    snap.height = video.videoHeight;
+    snap.getContext('2d').drawImage(video, 0, 0);
 
-    const blob = await new Promise(res => snap.toBlob(res, 'image/jpeg', 0.8));
+    // Size result canvas to video-wrap display size
+    resultCanvas.width  = video.clientWidth;
+    resultCanvas.height = video.clientHeight;
+
+    // Draw the snapshot scaled to fill result canvas
+    rctx.drawImage(snap, 0, 0, resultCanvas.width, resultCanvas.height);
+    resultCanvas.classList.add('show');
+
+    const blob = await new Promise(res => snap.toBlob(res, 'image/jpeg', 0.85));
     const form = new FormData();
-    form.append('file', blob, 'frame.jpg');
+    form.append('file', blob, 'capture.jpg');
 
     try {
       const res = await fetch(`${apiBase}/count`, { method: 'POST', body: form });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      renderResult(data, snap.width, snap.height);
-      if (errorOverlay.classList.contains('show')) {
-        errorOverlay.classList.remove('show');
-        setStatus('active', 'ANALYZING');
-      }
+
+      processing.classList.remove('show');
+      renderBoxes(data, snap.width, snap.height);
+      countEl.textContent = data.total ?? 0;
+      resultOverlay.classList.add('show');
+      retakeBtn.classList.add('show');
+      hudMode.textContent = 'RESULT';
+
     } catch (e) {
-      showError(`API unreachable: ${e.message}`);
-    } finally {
-      inferring = false;
+      processing.classList.remove('show');
+      showError(`API error: ${e.message}`);
     }
   }
 
-  function renderResult(data, srcW, srcH) {
-    const total = data.total ?? 0;
+  function renderBoxes(data, srcW, srcH) {
+    const scaleX = resultCanvas.width  / srcW;
+    const scaleY = resultCanvas.height / srcH;
 
-    // Count bump animation
-    if (total !== lastCount) {
-      countEl.textContent = total;
-      countEl.classList.add('bump');
-      setTimeout(() => countEl.classList.remove('bump'), 150);
-      lastCount = total;
-    }
+    if (!data.detections || !data.detections.length) return;
 
-    // Draw bounding boxes
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const scaleX = canvas.width  / srcW;
-    const scaleY = canvas.height / srcH;
+    data.detections.forEach(det => {
+      const [x1, y1, x2, y2] = det.bbox;
+      const rx = x1 * scaleX, ry = y1 * scaleY;
+      const rw = (x2 - x1) * scaleX, rh = (y2 - y1) * scaleY;
+      const color = BOX_COLORS[det.label?.toLowerCase()] || DEFAULT_COLOR;
+      const conf  = Math.round((det.confidence ?? 1) * 100);
 
-    if (data.detections && data.detections.length) {
-      data.detections.forEach(det => {
-        const [x1, y1, x2, y2] = det.bbox;
-        const rx = x1 * scaleX, ry = y1 * scaleY;
-        const rw = (x2 - x1) * scaleX, rh = (y2 - y1) * scaleY;
-        const color = BOX_COLORS[det.label?.toLowerCase()] || DEFAULT_COLOR;
-        const conf  = Math.round((det.confidence ?? 1) * 100);
+      // Box glow
+      rctx.shadowColor = color;
+      rctx.shadowBlur  = 8;
+      rctx.strokeStyle = color;
+      rctx.lineWidth   = 2;
+      rctx.strokeRect(rx, ry, rw, rh);
+      rctx.shadowBlur  = 0;
 
-        // Box
-        ctx.strokeStyle = color;
-        ctx.lineWidth   = 2;
-        ctx.shadowColor = color;
-        ctx.shadowBlur  = 6;
-        ctx.strokeRect(rx, ry, rw, rh);
-        ctx.shadowBlur  = 0;
+      // Label pill
+      const label = `${det.label}  ${conf}%`;
+      rctx.font = 'bold 12px DM Mono, monospace';
+      const tw = rctx.measureText(label).width;
+      const ph = 20, pw = tw + 12;
+      const lx = rx;
+      const ly = ry > ph + 4 ? ry - ph - 4 : ry + 4;
 
-        // Label pill
-        const label = `${det.label}  ${conf}%`;
-        ctx.font = 'bold 12px DM Mono, monospace';
-        const tw = ctx.measureText(label).width;
-        const ph = 20, pw = tw + 12;
-        const lx = rx, ly = ry > ph + 4 ? ry - ph - 4 : ry + 4;
-
-        ctx.fillStyle = color;
-        ctx.fillRect(lx, ly, pw, ph);
-        ctx.fillStyle = '#0a0a0a';
-        ctx.fillText(label, lx + 6, ly + 14);
-      });
-    }
+      rctx.fillStyle = color;
+      rctx.fillRect(lx, ly, pw, ph);
+      rctx.fillStyle = '#0a0a0a';
+      rctx.fillText(label, lx + 6, ly + 14);
+    });
   }
 
   function showError(msg) {
-    setStatus('error', 'API ERROR');
+    processing.classList.remove('show');
     errorMsg.textContent = msg;
     errorOverlay.classList.add('show');
+    hudMode.textContent = 'ERROR';
   }
 
-  // Init: pre-fill API URL input
   document.getElementById('api-url-input').value = apiBase;
 </script>
 </body>
