@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Sight Count</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --border: #222222;
+    --accent: #e8ff47;
+    --accent-dim: #b8cc2a;
+    --text: #f0f0f0;
+    --text-muted: #555;
+    --danger: #ff4747;
+    --overlay-bg: rgba(10,10,10,0.85);
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* ── HOME SCREEN ── */
+  #home {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #home::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      repeating-linear-gradient(0deg, transparent, transparent 39px, #1a1a1a 39px, #1a1a1a 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, #1a1a1a 39px, #1a1a1a 40px);
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  .home-content {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 0 24px;
+  }
+
+  .eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    color: var(--accent);
+    text-transform: uppercase;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.2s forwards;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(72px, 18vw, 140px);
+    line-height: 0.9;
+    letter-spacing: -0.02em;
+    color: var(--text);
+    text-align: center;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.35s forwards;
+  }
+
+  .logo span {
+    color: var(--accent);
+  }
+
+  .tagline {
+    font-size: 12px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+    margin-top: 4px;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.5s forwards;
+  }
+
+  .start-btn {
+    margin-top: 48px;
+    padding: 18px 52px;
+    background: var(--accent);
+    color: #0a0a0a;
+    border: none;
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: transform 0.15s, background 0.15s;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.65s forwards;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .start-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: white;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+
+  .start-btn:active::after { opacity: 0.15; }
+  .start-btn:active { transform: scale(0.97); }
+
+  .home-corner {
+    position: absolute;
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.15em;
+  }
+  .home-corner.tl { top: 20px; left: 20px; }
+  .home-corner.tr { top: 20px; right: 20px; text-align: right; }
+  .home-corner.bl { bottom: 20px; left: 20px; }
+  .home-corner.br { bottom: 20px; right: 20px; }
+
+  /* ── CAMERA SCREEN ── */
+  #camera-screen {
+    display: none;
+    height: 100vh;
+    flex-direction: column;
+    background: #000;
+    position: relative;
+  }
+
+  #camera-screen.active { display: flex; }
+
+  .video-wrap {
+    position: relative;
+    flex: 1;
+    overflow: hidden;
+    background: #000;
+  }
+
+  #video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  #overlay-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  /* scanning line animation */
+  .scan-line {
+    position: absolute;
+    left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0;
+    pointer-events: none;
+    animation: scan 2s linear infinite;
+  }
+
+  @keyframes scan {
+    0%   { top: 0%;   opacity: 0; }
+    5%   { opacity: 0.6; }
+    95%  { opacity: 0.6; }
+    100% { top: 100%; opacity: 0; }
+  }
+
+  /* corner brackets */
+  .bracket {
+    position: absolute;
+    width: 28px;
+    height: 28px;
+    border-color: var(--accent);
+    border-style: solid;
+    opacity: 0.7;
+    pointer-events: none;
+  }
+  .bracket.tl { top: 16px; left: 16px; border-width: 2px 0 0 2px; }
+  .bracket.tr { top: 16px; right: 16px; border-width: 2px 2px 0 0; }
+  .bracket.bl { bottom: 16px; left: 16px; border-width: 0 0 2px 2px; }
+  .bracket.br { bottom: 16px; right: 16px; border-width: 0 2px 2px 0; }
+
+  /* ── HUD BAR ── */
+  .hud-bar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+    pointer-events: none;
+  }
+
+  .hud-label {
+    font-size: 10px;
+    letter-spacing: 0.25em;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+
+  .fps-badge {
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.1em;
+  }
+
+  /* ── COUNT DISPLAY ── */
+  .count-display {
+    position: absolute;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    pointer-events: none;
+  }
+
+  .count-number {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(80px, 20vw, 120px);
+    line-height: 1;
+    color: var(--accent);
+    text-shadow: 0 0 40px rgba(232,255,71,0.3);
+    transition: transform 0.1s;
+  }
+
+  .count-number.bump {
+    transform: scale(1.08);
+  }
+
+  .count-label {
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: rgba(232,255,71,0.6);
+    text-transform: uppercase;
+    margin-top: -8px;
+  }
+
+  /* ── BOTTOM CONTROLS ── */
+  .bottom-bar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 16px 24px max(16px, env(safe-area-inset-bottom));
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
+  }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  .status-dot.error { background: var(--danger); box-shadow: 0 0 8px var(--danger); }
+  .status-dot.idle  { background: var(--text-muted); box-shadow: none; animation: none; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .status-text {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    color: var(--text-muted);
+    margin-left: 8px;
+  }
+
+  .status-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+
+  .stop-btn {
+    padding: 10px 24px;
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.15);
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+  }
+
+  .stop-btn:active {
+    border-color: var(--danger);
+    color: var(--danger);
+  }
+
+  /* ── ERROR OVERLAY ── */
+  #error-overlay {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: var(--overlay-bg);
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+    padding: 32px;
+  }
+
+  #error-overlay.show { display: flex; }
+
+  .error-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    color: var(--danger);
+    letter-spacing: 0.05em;
+  }
+
+  .error-msg {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.7;
+    max-width: 280px;
+  }
+
+  .retry-btn {
+    margin-top: 8px;
+    padding: 12px 32px;
+    background: var(--accent);
+    color: #0a0a0a;
+    border: none;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── API CONFIG MODAL ── */
+  #config-btn {
+    position: absolute;
+    bottom: 20px; left: 20px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    text-transform: uppercase;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.8s forwards;
+  }
+
+  #config-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--overlay-bg);
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 24px;
+  }
+
+  #config-modal.show { display: flex; }
+
+  .modal-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 32px;
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .modal-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 0.05em;
+    margin-bottom: 24px;
+    color: var(--accent);
+  }
+
+  .modal-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: block;
+  }
+
+  .modal-input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    padding: 12px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 24px;
+  }
+
+  .modal-input:focus { border-color: var(--accent); }
+
+  .modal-actions {
+    display: flex;
+    gap: 12px;
+  }
+
+  .modal-save {
+    flex: 1;
+    padding: 12px;
+    background: var(--accent);
+    color: #0a0a0a;
+    border: none;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+
+  .modal-cancel {
+    padding: 12px 20px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── HOME SCREEN ── -->
+<div id="home">
+  <div class="home-corner tl">SIGHT COUNT</div>
+  <div class="home-corner tr">v0.1.0</div>
+  <div class="home-corner bl">m8-server</div>
+  <div class="home-corner br">YOLOv8s</div>
+
+  <div class="home-content">
+    <div class="eyebrow">Hardware Vision System</div>
+    <div class="logo">SIGHT<br><span>COUNT</span></div>
+    <div class="tagline">Point · Capture · Count</div>
+    <button class="start-btn" onclick="startCamera()">Start Analyzing</button>
+  </div>
+
+  <button id="config-btn" onclick="showConfig()">⚙ API Config</button>
+</div>
+
+<!-- ── CAMERA SCREEN ── -->
+<div id="camera-screen">
+  <div class="video-wrap">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="overlay-canvas"></canvas>
+    <div class="scan-line"></div>
+    <div class="bracket tl"></div>
+    <div class="bracket tr"></div>
+    <div class="bracket bl"></div>
+    <div class="bracket br"></div>
+
+    <div class="hud-bar">
+      <div class="hud-label">Sight Count — Live</div>
+      <div class="fps-badge" id="fps-display">10 FPS</div>
+    </div>
+
+    <div class="count-display">
+      <div class="count-number" id="count-number">—</div>
+      <div class="count-label">items detected</div>
+    </div>
+
+    <div class="bottom-bar">
+      <div class="status-row">
+        <div class="status-dot idle" id="status-dot"></div>
+        <div class="status-text" id="status-text">INITIALIZING</div>
+      </div>
+      <button class="stop-btn" onclick="stopCamera()">Stop</button>
+    </div>
+
+    <div id="error-overlay">
+      <div class="error-title">Connection Error</div>
+      <div class="error-msg" id="error-msg">Unable to reach the inference API.</div>
+      <button class="retry-btn" onclick="retryConnection()">Retry</button>
+      <button class="modal-cancel" style="margin-top:4px" onclick="stopCamera()">Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CONFIG MODAL ── -->
+<div id="config-modal">
+  <div class="modal-box">
+    <div class="modal-title">API Config</div>
+    <label class="modal-label">Inference API URL</label>
+    <input class="modal-input" id="api-url-input" type="url"
+      placeholder="https://xxxx.trycloudflare.com">
+    <div class="modal-actions">
+      <button class="modal-save" onclick="saveConfig()">Save</button>
+      <button class="modal-cancel" onclick="hideConfig()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const DEFAULT_API = 'https://kiss-harold-gap-rainbow.trycloudflare.com';
+  const FRAME_INTERVAL = 100; // 10fps
+  const BOX_COLORS = {
+    bolt:   '#e8ff47',
+    nut:    '#47e8ff',
+    screw:  '#ff8c47',
+    washer: '#c847ff',
+  };
+  const DEFAULT_COLOR = '#e8ff47';
+
+  let apiBase = localStorage.getItem('sight-count-api') || DEFAULT_API;
+  let stream = null;
+  let frameTimer = null;
+  let isRunning = false;
+  let inferring = false;
+  let lastCount = null;
+
+  const video       = document.getElementById('video');
+  const canvas      = document.getElementById('overlay-canvas');
+  const ctx         = canvas.getContext('2d');
+  const countEl     = document.getElementById('count-number');
+  const statusDot   = document.getElementById('status-dot');
+  const statusText  = document.getElementById('status-text');
+  const errorOverlay = document.getElementById('error-overlay');
+  const errorMsg    = document.getElementById('error-msg');
+
+  // ── Config ──
+  function showConfig() {
+    document.getElementById('api-url-input').value = apiBase;
+    document.getElementById('config-modal').classList.add('show');
+  }
+  function hideConfig() {
+    document.getElementById('config-modal').classList.remove('show');
+  }
+  function saveConfig() {
+    const val = document.getElementById('api-url-input').value.trim().replace(/\/$/, '');
+    if (val) { apiBase = val; localStorage.setItem('sight-count-api', val); }
+    hideConfig();
+  }
+
+  // ── Camera ──
+  async function startCamera() {
+    document.getElementById('home').style.display = 'none';
+    document.getElementById('camera-screen').classList.add('active');
+    errorOverlay.classList.remove('show');
+    setStatus('idle', 'STARTING CAMERA');
+
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: 'environment' },
+          width:  { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+        audio: false,
+      });
+      video.srcObject = stream;
+      await video.play();
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+      isRunning = true;
+      setStatus('active', 'ANALYZING');
+      frameTimer = setInterval(captureAndInfer, FRAME_INTERVAL);
+    } catch (e) {
+      showError('Camera access denied or unavailable.', e);
+    }
+  }
+
+  function stopCamera() {
+    isRunning = false;
+    clearInterval(frameTimer);
+    if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    window.removeEventListener('resize', resizeCanvas);
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    document.getElementById('camera-screen').classList.remove('active');
+    document.getElementById('home').style.display = '';
+    countEl.textContent = '—';
+  }
+
+  function retryConnection() {
+    errorOverlay.classList.remove('show');
+    setStatus('active', 'ANALYZING');
+  }
+
+  function resizeCanvas() {
+    canvas.width  = video.clientWidth;
+    canvas.height = video.clientHeight;
+  }
+
+  function setStatus(state, label) {
+    statusDot.className = 'status-dot ' + (state === 'active' ? '' : state);
+    statusText.textContent = label;
+  }
+
+  // ── Inference ──
+  async function captureAndInfer() {
+    if (!isRunning || inferring) return;
+    inferring = true;
+
+    // Grab frame
+    const snap = document.createElement('canvas');
+    snap.width  = video.videoWidth  || canvas.width;
+    snap.height = video.videoHeight || canvas.height;
+    snap.getContext('2d').drawImage(video, 0, 0, snap.width, snap.height);
+
+    const blob = await new Promise(res => snap.toBlob(res, 'image/jpeg', 0.8));
+    const form = new FormData();
+    form.append('file', blob, 'frame.jpg');
+
+    try {
+      const res = await fetch(`${apiBase}/count`, { method: 'POST', body: form });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      renderResult(data, snap.width, snap.height);
+      if (errorOverlay.classList.contains('show')) {
+        errorOverlay.classList.remove('show');
+        setStatus('active', 'ANALYZING');
+      }
+    } catch (e) {
+      showError(`API unreachable: ${e.message}`);
+    } finally {
+      inferring = false;
+    }
+  }
+
+  function renderResult(data, srcW, srcH) {
+    const total = data.total ?? 0;
+
+    // Count bump animation
+    if (total !== lastCount) {
+      countEl.textContent = total;
+      countEl.classList.add('bump');
+      setTimeout(() => countEl.classList.remove('bump'), 150);
+      lastCount = total;
+    }
+
+    // Draw bounding boxes
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const scaleX = canvas.width  / srcW;
+    const scaleY = canvas.height / srcH;
+
+    if (data.detections && data.detections.length) {
+      data.detections.forEach(det => {
+        const [x1, y1, x2, y2] = det.bbox;
+        const rx = x1 * scaleX, ry = y1 * scaleY;
+        const rw = (x2 - x1) * scaleX, rh = (y2 - y1) * scaleY;
+        const color = BOX_COLORS[det.label?.toLowerCase()] || DEFAULT_COLOR;
+        const conf  = Math.round((det.confidence ?? 1) * 100);
+
+        // Box
+        ctx.strokeStyle = color;
+        ctx.lineWidth   = 2;
+        ctx.shadowColor = color;
+        ctx.shadowBlur  = 6;
+        ctx.strokeRect(rx, ry, rw, rh);
+        ctx.shadowBlur  = 0;
+
+        // Label pill
+        const label = `${det.label}  ${conf}%`;
+        ctx.font = 'bold 12px DM Mono, monospace';
+        const tw = ctx.measureText(label).width;
+        const ph = 20, pw = tw + 12;
+        const lx = rx, ly = ry > ph + 4 ? ry - ph - 4 : ry + 4;
+
+        ctx.fillStyle = color;
+        ctx.fillRect(lx, ly, pw, ph);
+        ctx.fillStyle = '#0a0a0a';
+        ctx.fillText(label, lx + 6, ly + 14);
+      });
+    }
+  }
+
+  function showError(msg) {
+    setStatus('error', 'API ERROR');
+    errorMsg.textContent = msg;
+    errorOverlay.classList.add('show');
+  }
+
+  // Init: pre-fill API URL input
+  document.getElementById('api-url-input').value = apiBase;
+</script>
+</body>
+</html>
