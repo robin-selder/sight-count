@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Sight Count</title>
+<title>Sight Count — Training</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -17,7 +17,7 @@
     --text: #f0f0f0;
     --text-muted: #555;
     --danger: #ff4747;
-    --overlay-bg: rgba(10,10,10,0.85);
+    --overlay-bg: rgba(10,10,10,0.92);
   }
 
   html, body {
@@ -58,7 +58,9 @@
     flex-direction: column;
     align-items: center;
     gap: 8px;
-    padding: 0 24px;
+    padding: 0 28px;
+    width: 100%;
+    max-width: 440px;
   }
 
   .eyebrow {
@@ -72,28 +74,78 @@
 
   .logo {
     font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(72px, 18vw, 140px);
+    font-size: clamp(56px, 14vw, 100px);
     line-height: 0.9;
     color: var(--text);
     text-align: center;
     opacity: 0;
     animation: fadeUp 0.6s 0.35s forwards;
   }
-
   .logo span { color: var(--accent); }
 
   .tagline {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-muted);
-    letter-spacing: 0.1em;
+    letter-spacing: 0.12em;
     margin-top: 4px;
     opacity: 0;
     animation: fadeUp 0.6s 0.5s forwards;
   }
 
+  /* ── PROGRESS GRID ── */
+  .progress-grid {
+    width: 100%;
+    margin-top: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.55s forwards;
+  }
+
+  .progress-row {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .progress-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+  }
+
+  .progress-label {
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .progress-count {
+    font-size: 10px;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+  }
+
+  .progress-track {
+    height: 2px;
+    background: var(--border);
+    position: relative;
+  }
+
+  .progress-fill {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    min-width: 0;
+    transition: width 0.5s ease;
+  }
+
+  /* ── START BUTTON ── */
   .start-btn {
-    margin-top: 48px;
-    padding: 18px 52px;
+    margin-top: 28px;
+    width: 100%;
+    padding: 18px;
     background: var(--accent);
     color: #0a0a0a;
     border: none;
@@ -105,8 +157,6 @@
     cursor: pointer;
     opacity: 0;
     animation: fadeUp 0.6s 0.65s forwards;
-    position: relative;
-    overflow: hidden;
     transition: transform 0.15s;
   }
   .start-btn:active { transform: scale(0.97); }
@@ -119,12 +169,11 @@
   }
   .home-corner.tl { top: 20px; left: 20px; }
   .home-corner.tr { top: 20px; right: 20px; }
-  .home-corner.bl { bottom: 20px; left: 20px; }
-  .home-corner.br { bottom: 20px; right: 20px; }
 
-  #config-btn {
+  #guide-btn {
     position: absolute;
-    bottom: 20px; left: 20px;
+    bottom: max(20px, env(safe-area-inset-bottom));
+    right: 20px;
     background: none;
     border: none;
     color: var(--text-muted);
@@ -133,6 +182,7 @@
     letter-spacing: 0.15em;
     cursor: pointer;
     text-transform: uppercase;
+    padding: 8px;
     opacity: 0;
     animation: fadeUp 0.6s 0.8s forwards;
   }
@@ -144,10 +194,35 @@
     height: 100svh;
     flex-direction: column;
     background: #000;
-    position: relative;
   }
   #camera-screen.active { display: flex; }
 
+  /* ── CLASS TABS ── */
+  .class-tabs {
+    display: flex;
+    background: #0a0a0a;
+    border-bottom: 1px solid var(--border);
+    padding-top: env(safe-area-inset-top);
+    flex-shrink: 0;
+  }
+
+  .class-tab {
+    flex: 1;
+    padding: 11px 0;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    cursor: pointer;
+    margin-bottom: -1px;
+    transition: color 0.2s, border-bottom-color 0.2s;
+  }
+
+  /* ── VIDEO WRAP ── */
   .video-wrap {
     position: relative;
     flex: 1;
@@ -161,32 +236,28 @@
     display: block;
   }
 
-  /* result canvas shown after capture */
   #result-canvas {
-    display: none;
     position: absolute;
     inset: 0;
     width: 100%; height: 100%;
     object-fit: cover;
+    display: none;
   }
   #result-canvas.show { display: block; }
 
-  /* corner brackets */
   .bracket {
     position: absolute;
     width: 28px; height: 28px;
     border-color: var(--accent);
     border-style: solid;
-    opacity: 0.7;
+    opacity: 0.6;
     pointer-events: none;
-    transition: opacity 0.3s;
   }
   .bracket.tl { top: 16px; left: 16px;   border-width: 2px 0 0 2px; }
   .bracket.tr { top: 16px; right: 16px;  border-width: 2px 2px 0 0; }
   .bracket.bl { bottom: 16px; left: 16px;  border-width: 0 0 2px 2px; }
   .bracket.br { bottom: 16px; right: 16px; border-width: 0 2px 2px 0; }
 
-  /* HUD */
   .hud-bar {
     position: absolute;
     top: 0; left: 0; right: 0;
@@ -194,34 +265,40 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+    background: linear-gradient(to bottom, rgba(0,0,0,0.6), transparent);
     pointer-events: none;
   }
-  .hud-label {
+  .hud-class {
     font-size: 10px;
     letter-spacing: 0.25em;
-    color: var(--accent);
     text-transform: uppercase;
+    transition: color 0.2s;
   }
-  .hud-mode {
+  .hud-count {
     font-size: 10px;
     color: var(--text-muted);
     letter-spacing: 0.1em;
   }
 
-  /* ── CAPTURE BUTTON ── */
+  /* ── CAPTURE BAR ── */
   .capture-bar {
     position: absolute;
     bottom: 0; left: 0; right: 0;
-    padding: 20px 32px max(20px, env(safe-area-inset-bottom));
+    padding: 16px 20px max(20px, env(safe-area-inset-bottom));
     display: flex;
     align-items: center;
-    justify-content: space-between;
     background: linear-gradient(to top, rgba(0,0,0,0.85), transparent);
   }
 
+  .bar-slot {
+    flex: 1;
+    display: flex;
+    align-items: center;
+  }
+  .bar-slot.right { justify-content: flex-end; }
+
   .capture-btn {
-    width: 72px; height: 72px;
+    width: 70px; height: 70px;
     border-radius: 50%;
     border: 3px solid var(--accent);
     background: transparent;
@@ -229,7 +306,6 @@
     position: relative;
     transition: transform 0.15s;
     flex-shrink: 0;
-    margin: 0 auto;
   }
   .capture-btn::after {
     content: '';
@@ -237,103 +313,42 @@
     inset: 6px;
     border-radius: 50%;
     background: var(--accent);
-    transition: transform 0.15s, opacity 0.15s;
+    transition: opacity 0.15s;
   }
   .capture-btn:active { transform: scale(0.92); }
   .capture-btn:active::after { opacity: 0.7; }
 
-  /* retake button — shown after capture */
-  .retake-btn {
-    display: none;
-    padding: 10px 22px;
+  .side-btn {
+    padding: 10px 16px;
     background: transparent;
     border: 1px solid rgba(255,255,255,0.15);
     color: var(--text-muted);
     font-family: 'DM Mono', monospace;
-    font-size: 11px;
+    font-size: 9px;
     letter-spacing: 0.2em;
     text-transform: uppercase;
     cursor: pointer;
     transition: border-color 0.2s, color 0.2s;
+    min-width: 68px;
+    text-align: center;
   }
-  .retake-btn.show { display: block; }
-  .retake-btn:active { border-color: var(--accent); color: var(--accent); }
+  .side-btn:active { border-color: rgba(255,255,255,0.4); color: var(--text); }
 
-  .stop-btn {
-    padding: 10px 22px;
+  .save-btn {
+    padding: 10px 16px;
     background: transparent;
-    border: 1px solid rgba(255,255,255,0.15);
-    color: var(--text-muted);
+    border: 1px solid var(--accent);
+    color: var(--accent);
     font-family: 'DM Mono', monospace;
-    font-size: 11px;
+    font-size: 9px;
     letter-spacing: 0.2em;
     text-transform: uppercase;
     cursor: pointer;
-    transition: border-color 0.2s, color 0.2s;
+    transition: background 0.15s, border-color 0.2s, color 0.2s;
+    min-width: 68px;
+    text-align: center;
   }
-  .stop-btn:active { border-color: var(--danger); color: var(--danger); }
-
-  /* ── RESULT OVERLAY ── */
-  #result-overlay {
-    display: none;
-    position: absolute;
-    top: 60px; left: 50%;
-    transform: translateX(-50%);
-    flex-direction: column;
-    align-items: center;
-    pointer-events: none;
-  }
-  #result-overlay.show { display: flex; }
-
-  .count-number {
-    font-family: 'Bebas Neue', sans-serif;
-    font-size: clamp(80px, 20vw, 120px);
-    line-height: 1;
-    color: var(--accent);
-    text-shadow: 0 0 40px rgba(232,255,71,0.4);
-    animation: countPop 0.25s cubic-bezier(0.34,1.56,0.64,1);
-  }
-  .count-label {
-    font-size: 10px;
-    letter-spacing: 0.3em;
-    color: rgba(232,255,71,0.6);
-    text-transform: uppercase;
-    margin-top: -8px;
-  }
-
-  @keyframes countPop {
-    from { transform: scale(0.6); opacity: 0; }
-    to   { transform: scale(1);   opacity: 1; }
-  }
-
-  /* ── PROCESSING SPINNER ── */
-  #processing {
-    display: none;
-    position: absolute;
-    inset: 0;
-    align-items: center;
-    justify-content: center;
-    flex-direction: column;
-    gap: 16px;
-    background: rgba(0,0,0,0.5);
-  }
-  #processing.show { display: flex; }
-
-  .spinner {
-    width: 40px; height: 40px;
-    border: 2px solid var(--border);
-    border-top-color: var(--accent);
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-  }
-  .processing-label {
-    font-size: 11px;
-    letter-spacing: 0.25em;
-    color: var(--accent);
-    text-transform: uppercase;
-  }
-
-  @keyframes spin { to { transform: rotate(360deg); } }
+  .save-btn:active { background: rgba(255,255,255,0.07); }
 
   /* ── ERROR OVERLAY ── */
   #error-overlay {
@@ -349,6 +364,7 @@
     padding: 32px;
   }
   #error-overlay.show { display: flex; }
+
   .error-title {
     font-family: 'Bebas Neue', sans-serif;
     font-size: 32px;
@@ -361,32 +377,21 @@
     line-height: 1.7;
     max-width: 280px;
   }
-  .retry-btn {
+  .err-back-btn {
     margin-top: 8px;
     padding: 12px 32px;
-    background: var(--accent);
-    color: #0a0a0a;
-    border: none;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
     font-family: 'DM Mono', monospace;
     font-size: 11px;
     letter-spacing: 0.2em;
     text-transform: uppercase;
     cursor: pointer;
   }
-  .err-back-btn {
-    padding: 10px 20px;
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text-muted);
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    cursor: pointer;
-  }
 
-  /* ── CONFIG MODAL ── */
-  #config-modal {
+  /* ── GUIDE MODAL ── */
+  #guide-modal {
     display: none;
     position: fixed;
     inset: 0;
@@ -394,48 +399,85 @@
     align-items: center;
     justify-content: center;
     z-index: 100;
-    padding: 24px;
+    padding: max(24px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
+    overflow-y: auto;
   }
-  #config-modal.show { display: flex; }
+  #guide-modal.show { display: flex; }
+
   .modal-box {
     background: var(--surface);
     border: 1px solid var(--border);
-    padding: 32px;
+    padding: 28px 24px;
     width: 100%;
     max-width: 420px;
   }
+
   .modal-title {
     font-family: 'Bebas Neue', sans-serif;
     font-size: 28px;
     letter-spacing: 0.05em;
-    margin-bottom: 24px;
+    margin-bottom: 22px;
     color: var(--accent);
   }
-  .modal-label {
-    font-size: 10px;
-    letter-spacing: 0.2em;
-    color: var(--text-muted);
+
+  .guide-section { margin-bottom: 20px; }
+
+  .guide-section-title {
+    font-size: 9px;
+    letter-spacing: 0.3em;
+    color: var(--accent);
     text-transform: uppercase;
-    margin-bottom: 8px;
-    display: block;
+    margin-bottom: 10px;
+    opacity: 0.7;
   }
-  .modal-input {
-    width: 100%;
-    background: var(--bg);
-    border: 1px solid var(--border);
+
+  .guide-classes {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .guide-class {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+  }
+
+  .guide-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .guide-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .guide-list li {
+    font-size: 11px;
     color: var(--text);
-    font-family: 'DM Mono', monospace;
-    font-size: 12px;
-    padding: 12px 14px;
-    outline: none;
-    transition: border-color 0.2s;
-    margin-bottom: 24px;
+    line-height: 1.55;
+    letter-spacing: 0.03em;
+    padding-left: 16px;
+    position: relative;
   }
-  .modal-input:focus { border-color: var(--accent); }
-  .modal-actions { display: flex; gap: 12px; }
-  .modal-save {
-    flex: 1;
-    padding: 12px;
+
+  .guide-list li::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: var(--text-muted);
+  }
+
+  .modal-close {
+    width: 100%;
+    margin-top: 8px;
+    padding: 13px;
     background: var(--accent);
     color: #0a0a0a;
     border: none;
@@ -445,50 +487,64 @@
     text-transform: uppercase;
     cursor: pointer;
   }
-  .modal-cancel {
-    padding: 12px 20px;
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text-muted);
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    cursor: pointer;
+  .modal-close:active { opacity: 0.8; }
+
+  /* ── FLASH ── */
+  #flash {
+    position: fixed;
+    inset: 0;
+    background: #fff;
+    pointer-events: none;
+    z-index: 200;
+    opacity: 0;
+  }
+  #flash.fire { animation: flashAnim 0.25s ease-out forwards; }
+
+  @keyframes flashAnim {
+    from { opacity: 0.65; }
+    to   { opacity: 0; }
   }
 
   @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(16px); }
+    from { opacity: 0; transform: translateY(12px); }
     to   { opacity: 1; transform: translateY(0); }
   }
 </style>
 </head>
 <body>
 
+<div id="flash"></div>
+
 <!-- ── HOME ── -->
 <div id="home">
   <div class="home-corner tl">SIGHT COUNT</div>
-  <div class="home-corner tr">v0.1.0</div>
-  <div class="home-corner br">YOLOv8s</div>
+  <div class="home-corner tr">TRAINING</div>
 
   <div class="home-content">
-    <div class="eyebrow">Hardware Vision System</div>
+    <div class="eyebrow">Training Data Collector</div>
     <div class="logo">SIGHT<br><span>COUNT</span></div>
-    <div class="tagline">Point · Capture · Count</div>
-    <button class="start-btn" onclick="startCamera()">Start Analyzing</button>
+    <div class="tagline">Capture · Label · Train</div>
+
+    <div class="progress-grid" id="progress-grid"></div>
+
+    <button class="start-btn" onclick="startCamera()">Start Collecting</button>
   </div>
 
-  <button id="config-btn" onclick="showConfig()">⚙ API Config</button>
+  <button id="guide-btn" onclick="showGuide()">? Collection Guide</button>
 </div>
 
 <!-- ── CAMERA SCREEN ── -->
 <div id="camera-screen">
+
+  <div class="class-tabs">
+    <button class="class-tab" data-cls="bolt"   onclick="selectClass('bolt')">BOLT</button>
+    <button class="class-tab" data-cls="nut"    onclick="selectClass('nut')">NUT</button>
+    <button class="class-tab" data-cls="washer" onclick="selectClass('washer')">WASHER</button>
+    <button class="class-tab" data-cls="screw"  onclick="selectClass('screw')">SCREW</button>
+  </div>
+
   <div class="video-wrap">
-
-    <!-- live viewfinder -->
     <video id="video" autoplay playsinline muted></video>
-
-    <!-- result image with boxes drawn on it -->
     <canvas id="result-canvas"></canvas>
 
     <div class="bracket tl"></div>
@@ -497,226 +553,254 @@
     <div class="bracket br"></div>
 
     <div class="hud-bar">
-      <div class="hud-label">Sight Count</div>
-      <div class="hud-mode" id="hud-mode">READY</div>
+      <div class="hud-class" id="hud-class">BOLT</div>
+      <div class="hud-count" id="hud-count">0 / 200</div>
     </div>
 
-    <!-- count shown after result -->
-    <div id="result-overlay">
-      <div class="count-number" id="count-number">0</div>
-      <div class="count-label">items detected</div>
-    </div>
-
-    <!-- processing spinner -->
-    <div id="processing">
-      <div class="spinner"></div>
-      <div class="processing-label">Analyzing…</div>
-    </div>
-
-    <!-- error -->
     <div id="error-overlay">
-      <div class="error-title">Error</div>
-      <div class="error-msg" id="error-msg">Unable to reach the inference API.</div>
-      <button class="retry-btn" onclick="retake()">Retake</button>
+      <div class="error-title">Camera Error</div>
+      <div class="error-msg" id="error-msg">Camera access denied or unavailable.</div>
       <button class="err-back-btn" onclick="stopCamera()">Back</button>
     </div>
 
     <div class="capture-bar">
-      <button class="stop-btn" onclick="stopCamera()">Back</button>
-      <button class="capture-btn" id="capture-btn" onclick="capture()" aria-label="Capture"></button>
-      <button class="retake-btn" id="retake-btn" onclick="retake()">Retake</button>
+      <div class="bar-slot left">
+        <button class="side-btn" id="back-btn"   onclick="stopCamera()">Back</button>
+        <button class="side-btn" id="retake-btn" onclick="retake()" hidden>Retake</button>
+      </div>
+      <button class="capture-btn" id="capture-btn" onclick="capture()"></button>
+      <div class="bar-slot right">
+        <button class="save-btn" id="save-btn" onclick="saveCapture()" hidden>Save</button>
+      </div>
     </div>
-
   </div>
 </div>
 
-<!-- ── CONFIG MODAL ── -->
-<div id="config-modal">
+<!-- ── GUIDE MODAL ── -->
+<div id="guide-modal">
   <div class="modal-box">
-    <div class="modal-title">API Config</div>
-    <label class="modal-label">Inference API URL</label>
-    <input class="modal-input" id="api-url-input" type="url"
-      placeholder="https://xxxx.trycloudflare.com">
-    <div class="modal-actions">
-      <button class="modal-save" onclick="saveConfig()">Save</button>
-      <button class="modal-cancel" onclick="hideConfig()">Cancel</button>
+    <div class="modal-title">Collection Guide</div>
+
+    <div class="guide-section">
+      <div class="guide-section-title">Classes to capture</div>
+      <div class="guide-classes">
+        <div class="guide-class"><div class="guide-dot" style="background:#e8ff47"></div>BOLT</div>
+        <div class="guide-class"><div class="guide-dot" style="background:#47e8ff"></div>NUT</div>
+        <div class="guide-class"><div class="guide-dot" style="background:#c847ff"></div>WASHER</div>
+        <div class="guide-class"><div class="guide-dot" style="background:#ff8c47"></div>SCREW</div>
+      </div>
     </div>
+
+    <div class="guide-section">
+      <div class="guide-section-title">How to shoot</div>
+      <ul class="guide-list">
+        <li>One item per photo — fill the frame</li>
+        <li>Plain background: concrete, wood, or a dark surface</li>
+        <li>Vary the angle: top-down, slight tilt, on its side</li>
+        <li>Vary sizes within each class (M3 through M12 etc.)</li>
+        <li>Even lighting — avoid harsh glare or deep shadows</li>
+        <li>Keep the phone still to avoid motion blur</li>
+      </ul>
+    </div>
+
+    <div class="guide-section">
+      <div class="guide-section-title">Targets</div>
+      <ul class="guide-list">
+        <li>200+ images per class for reliable detection</li>
+        <li>Washer needs most work — aim for 300+</li>
+        <li>Images save to your device on each capture</li>
+        <li>Filename format: sc_bolt_0001.jpg etc.</li>
+      </ul>
+    </div>
+
+    <button class="modal-close" onclick="hideGuide()">Got it</button>
   </div>
 </div>
 
 <script>
-  const DEFAULT_API = 'https://kiss-harold-gap-rainbow.trycloudflare.com';
-  const BOX_COLORS = {
-    bolt:   '#e8ff47',
-    nut:    '#47e8ff',
-    screw:  '#ff8c47',
-    washer: '#c847ff',
-  };
-  const DEFAULT_COLOR = '#e8ff47';
+  const CLASSES = [
+    { key: 'bolt',   label: 'BOLT',   color: '#e8ff47' },
+    { key: 'nut',    label: 'NUT',    color: '#47e8ff' },
+    { key: 'washer', label: 'WASHER', color: '#c847ff' },
+    { key: 'screw',  label: 'SCREW',  color: '#ff8c47' },
+  ];
+  const TARGET = 200;
 
-  let apiBase = localStorage.getItem('sight-count-api') || DEFAULT_API;
-  let stream  = null;
+  let stream       = null;
+  let activeClass  = 'bolt';
+  let capturedBlob = null;
 
-  const video         = document.getElementById('video');
-  const resultCanvas  = document.getElementById('result-canvas');
-  const rctx          = resultCanvas.getContext('2d');
-  const captureBtn    = document.getElementById('capture-btn');
-  const retakeBtn     = document.getElementById('retake-btn');
-  const resultOverlay = document.getElementById('result-overlay');
-  const countEl       = document.getElementById('count-number');
-  const processing    = document.getElementById('processing');
-  const errorOverlay  = document.getElementById('error-overlay');
-  const errorMsg      = document.getElementById('error-msg');
-  const hudMode       = document.getElementById('hud-mode');
+  const video        = document.getElementById('video');
+  const resultCanvas = document.getElementById('result-canvas');
+  const rctx         = resultCanvas.getContext('2d');
+  const captureBtn   = document.getElementById('capture-btn');
+  const saveBtn      = document.getElementById('save-btn');
+  const retakeBtn    = document.getElementById('retake-btn');
+  const backBtn      = document.getElementById('back-btn');
+  const errorOverlay = document.getElementById('error-overlay');
+  const errorMsg     = document.getElementById('error-msg');
+  const hudClass     = document.getElementById('hud-class');
+  const hudCount     = document.getElementById('hud-count');
+  const flash        = document.getElementById('flash');
 
-  // ── Config ──
-  function showConfig() {
-    document.getElementById('api-url-input').value = apiBase;
-    document.getElementById('config-modal').classList.add('show');
+  // ── Storage ──
+  function getCount(cls) {
+    return parseInt(localStorage.getItem(`sc-training-${cls}`) || '0', 10);
   }
-  function hideConfig() {
-    document.getElementById('config-modal').classList.remove('show');
+  function incCount(cls) {
+    const n = getCount(cls) + 1;
+    localStorage.setItem(`sc-training-${cls}`, n);
+    return n;
   }
-  function saveConfig() {
-    const val = document.getElementById('api-url-input').value.trim().replace(/\/$/, '');
-    if (val) { apiBase = val; localStorage.setItem('sight-count-api', val); }
-    hideConfig();
+
+  // ── Home progress ──
+  function renderProgress() {
+    const grid = document.getElementById('progress-grid');
+    grid.innerHTML = CLASSES.map(c => {
+      const count = getCount(c.key);
+      const pct   = Math.min(100, (count / TARGET) * 100).toFixed(1);
+      return `<div class="progress-row">
+        <div class="progress-meta">
+          <span class="progress-label" style="color:${c.color}">${c.label}</span>
+          <span class="progress-count">${count} / ${TARGET}</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" style="width:${pct}%;background:${c.color}"></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Guide modal ──
+  function showGuide() { document.getElementById('guide-modal').classList.add('show'); }
+  function hideGuide() { document.getElementById('guide-modal').classList.remove('show'); }
+
+  // ── Class selection ──
+  function selectClass(cls) {
+    if (capturedBlob) retake();
+
+    activeClass = cls;
+    const c = CLASSES.find(x => x.key === cls);
+
+    document.querySelectorAll('.class-tab').forEach(tab => {
+      const active = tab.dataset.cls === cls;
+      tab.style.color              = active ? c.color : '';
+      tab.style.borderBottomColor  = active ? c.color : '';
+    });
+
+    hudClass.textContent      = c.label;
+    hudClass.style.color      = c.color;
+    saveBtn.style.borderColor = c.color;
+    saveBtn.style.color       = c.color;
+    hudCount.textContent      = `${getCount(cls)} / ${TARGET}`;
   }
 
   // ── Camera ──
   async function startCamera() {
     document.getElementById('home').style.display = 'none';
     document.getElementById('camera-screen').classList.add('active');
-    resetToViewfinder();
 
     try {
       stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: { ideal: 'environment' },
-          width:  { ideal: 1280 },
-          height: { ideal: 720 },
-        },
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: false,
       });
       video.srcObject = stream;
       await video.play();
-      hudMode.textContent = 'READY';
     } catch (e) {
-      showError('Camera access denied or unavailable. Check browser permissions.');
+      errorMsg.textContent = 'Camera access denied or unavailable. Check browser permissions.';
+      errorOverlay.classList.add('show');
+      return;
     }
+
+    selectClass('bolt');
   }
 
   function stopCamera() {
     if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
     document.getElementById('camera-screen').classList.remove('active');
     document.getElementById('home').style.display = '';
-  }
-
-  function resetToViewfinder() {
-    video.style.display = 'block';
-    resultCanvas.classList.remove('show');
-    resultOverlay.classList.remove('show');
-    processing.classList.remove('show');
-    errorOverlay.classList.remove('show');
-    captureBtn.style.display = 'block';
-    retakeBtn.classList.remove('show');
-    hudMode.textContent = 'READY';
+    renderProgress();
   }
 
   function retake() {
-    resetToViewfinder();
+    capturedBlob = null;
+    video.style.display = 'block';
+    resultCanvas.classList.remove('show');
+    captureBtn.hidden  = false;
+    saveBtn.hidden     = true;
+    retakeBtn.hidden   = true;
+    backBtn.hidden     = false;
+    errorOverlay.classList.remove('show');
   }
 
-  // ── Capture & Infer ──
+  // ── Capture ──
   async function capture() {
     if (!video.videoWidth) return;
 
-    // Freeze: hide viewfinder, show processing
-    video.style.display = 'none';
-    captureBtn.style.display = 'none';
-    processing.classList.add('show');
-    hudMode.textContent = 'ANALYZING';
+    // Flash
+    flash.classList.remove('fire');
+    void flash.offsetWidth;
+    flash.classList.add('fire');
 
-    // Snap frame to an offscreen canvas
+    // Snap frame
     const snap = document.createElement('canvas');
     snap.width  = video.videoWidth;
     snap.height = video.videoHeight;
     snap.getContext('2d').drawImage(video, 0, 0);
 
-    // Size result canvas to video-wrap display size
+    // Show frozen frame
     resultCanvas.width  = video.clientWidth;
     resultCanvas.height = video.clientHeight;
-
-    // Draw the snapshot scaled to fill result canvas
     rctx.drawImage(snap, 0, 0, resultCanvas.width, resultCanvas.height);
     resultCanvas.classList.add('show');
+    video.style.display = 'none';
 
-    const blob = await new Promise(res => snap.toBlob(res, 'image/jpeg', 0.85));
-    const form = new FormData();
-    form.append('file', blob, 'capture.jpg');
+    capturedBlob = await new Promise(res => snap.toBlob(res, 'image/jpeg', 0.92));
 
-    try {
-      const res = await fetch(`${apiBase}/count`, { method: 'POST', body: form });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
+    captureBtn.hidden = true;
+    saveBtn.hidden    = false;
+    retakeBtn.hidden  = false;
+    backBtn.hidden    = true;
+  }
 
-      processing.classList.remove('show');
-      renderBoxes(data, snap.width, snap.height);
-      countEl.textContent = data.total ?? 0;
-      resultOverlay.classList.add('show');
-      retakeBtn.classList.add('show');
-      hudMode.textContent = 'RESULT';
+  // ── Save ──
+  async function saveCapture() {
+    if (!capturedBlob) return;
 
-    } catch (e) {
-      processing.classList.remove('show');
-      showError(`API error: ${e.message}`);
+    const nextCount = getCount(activeClass) + 1;
+    const filename  = `sc_${activeClass}_${String(nextCount).padStart(4, '0')}.jpg`;
+    const file      = new File([capturedBlob], filename, { type: 'image/jpeg' });
+
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: filename });
+        incCount(activeClass);
+        hudCount.textContent = `${getCount(activeClass)} / ${TARGET}`;
+        retake();
+      } catch {
+        // User cancelled share sheet — stay on preview, don't count
+      }
+      return;
     }
+
+    // Fallback: trigger download (desktop / Android)
+    incCount(activeClass);
+    const url = URL.createObjectURL(capturedBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+    hudCount.textContent = `${getCount(activeClass)} / ${TARGET}`;
+    retake();
   }
 
-  function renderBoxes(data, srcW, srcH) {
-    const scaleX = resultCanvas.width  / srcW;
-    const scaleY = resultCanvas.height / srcH;
-
-    if (!data.detections || !data.detections.length) return;
-
-    data.detections.forEach(det => {
-      const [x1, y1, x2, y2] = det.bbox;
-      const rx = x1 * scaleX, ry = y1 * scaleY;
-      const rw = (x2 - x1) * scaleX, rh = (y2 - y1) * scaleY;
-      const color = BOX_COLORS[det.label?.toLowerCase()] || DEFAULT_COLOR;
-      const conf  = Math.round((det.confidence ?? 1) * 100);
-
-      // Box glow
-      rctx.shadowColor = color;
-      rctx.shadowBlur  = 8;
-      rctx.strokeStyle = color;
-      rctx.lineWidth   = 2;
-      rctx.strokeRect(rx, ry, rw, rh);
-      rctx.shadowBlur  = 0;
-
-      // Label pill
-      const label = `${det.label}  ${conf}%`;
-      rctx.font = 'bold 12px DM Mono, monospace';
-      const tw = rctx.measureText(label).width;
-      const ph = 20, pw = tw + 12;
-      const lx = rx;
-      const ly = ry > ph + 4 ? ry - ph - 4 : ry + 4;
-
-      rctx.fillStyle = color;
-      rctx.fillRect(lx, ly, pw, ph);
-      rctx.fillStyle = '#0a0a0a';
-      rctx.fillText(label, lx + 6, ly + 14);
-    });
-  }
-
-  function showError(msg) {
-    processing.classList.remove('show');
-    errorMsg.textContent = msg;
-    errorOverlay.classList.add('show');
-    hudMode.textContent = 'ERROR';
-  }
-
-  document.getElementById('api-url-input').value = apiBase;
+  // Init
+  renderProgress();
 </script>
 </body>
 </html>
