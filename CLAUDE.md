@@ -38,9 +38,16 @@ capable GPU. Inference currently runs on the 680M via ROCm in the yolo-amd conta
   - Returns total count only. Per-class output was intentionally dropped due to
     bolt/screw confusion in the current model. Re-enable per-class + detections array
     once the retrained model is accurate.
+- `POST /training/upload` (multipart `file`, form fields `cls`, `item_count`) → `{saved, cls, item_count, filename, seq}`
+  - Saves EXIF-corrected JPEG to `/models/training/{cls}/` on the host volume.
+  - Filename format: `bolt_0001_5x.jpg` (class, sequence, item count per photo).
+  - `item_count` is set by the user in the app and embedded in the filename to assist
+    Roboflow label validation (expected box count per image is known up front).
 - `server.py` applies `PIL.ImageOps.exif_transpose()` to fix iPhone/Android EXIF rotation
-  (orientation 6 was causing sideways inference → zero detections). KEEP THIS.
+  (orientation 6 was causing sideways inference → zero detections). KEEP THIS on all endpoints.
 - CORS: `allow_origins=["*"]`
+- Source: `~/yolo-amd/app/server.py` on host. Image must be rebuilt after edits:
+  `docker build -t yolo-amd ~/yolo-amd/ && docker compose up -d --no-deps yolo-amd`
 
 ## Why the current model fails (root cause)
 The current model combines TWO public Roboflow Universe datasets. It is not a platform problem
@@ -93,24 +100,62 @@ ability to see the items.
    bounding-box overlay back on (code already supports a `detections` array).
 
 ## Cloudflare Tunnel
-- Quick tunnel (ephemeral, no account). Current URL changes on container restart.
+- Quick tunnel (ephemeral, no account). URL changes only if the `cloudflared` container restarts
+  (restarting `yolo-amd` alone does NOT change it — confirmed).
 - Current: `https://kiss-harold-gap-rainbow.trycloudflare.com`
-- Get current URL: `docker compose logs --tail=20 cloudflared | grep trycloudflare`
-- App ⚙ API Config button updates the base URL (saved to localStorage) — no redeploy needed.
+- Get current URL: `docker logs cloudflared 2>&1 | grep trycloudflare | tail -1`
+- App ⚙ Server button (home screen, bottom-left) updates the base URL saved to localStorage.
 - Future: move to a named tunnel for a stable URL once out of prototype.
 
-## Frontend (index.html)
+## Frontend (index.html) — Training Data Collection Mode
+The app is currently in **training data collection mode** (inference/analyze disabled).
+
+- Home screen shows per-class progress bars (captured / 200 target) loaded from localStorage.
+- Camera screen:
+  - Class tab strip (BOLT / NUT / WASHER / SCREW) — switches active class.
+  - Info bar: shooting rules ("same size & type per shot, vary bg & lighting") + item count
+    stepper (− / N / +, default 5). Item count is embedded in the saved filename.
+  - Viewfinder → tap shutter → flash → frozen frame preview → Save or Retake.
+  - Save flow: POST to `/training/upload` on server (8 s timeout) → fallback to Web Share
+    (iOS) or download (desktop) if server unreachable; toast shown on fallback.
+- ⚙ Server button (home, bottom-left) sets the Cloudflare tunnel URL.
+- ? Guide button (home, bottom-right) opens the collection guide modal.
 - Dark industrial aesthetic, Bebas Neue + DM Mono, accent `#e8ff47`.
-- Home → "Start Analyzing" → live viewfinder → tap shutter → frame frozen → POST to `/count`
-  → count shown; "Retake" to repeat. ⚙ API Config bottom-left of home.
-- Bounding-box overlay code exists (reads a `detections[{label,confidence,bbox}]` array) but is
-  dormant because the API currently returns total-only. Re-enable after retrain.
+
+To restore analyze mode after retraining: re-enable `/count` POST in the capture flow,
+re-add the result overlay and bounding-box renderer, and re-enable per-class + detections
+in `server.py`. The JS skeleton for bounding boxes is gone from index.html now — refer to
+git history (commit `33c631b`) for the original renderBoxes() implementation.
+
+## Training data — current status (as of 2026-06-08)
+Collection is **in progress**. Images upload automatically to `~/yolo-amd/models/training/`
+on m8-server (persisted via the existing `/models` volume mount).
+
+| Class  | Images collected | Target |
+|--------|-----------------|--------|
+| bolt   | 3               | 200    |
+| nut    | 2               | 200    |
+| washer | 1               | 200+   |
+| screw  | 0               | 200    |
+
+Check live counts: `find ~/yolo-amd/models/training -type f | sort`
 
 ## Known issues / watch-items
-- Tunnel URL changes on cloudflared restart (update via ⚙ in app).
-- High-res iPhone photos (4032×3024) — EXIF transpose is required; keep it.
+- Tunnel URL changes on `cloudflared` container restart (update via ⚙ Server in app).
+- High-res iPhone photos (4032×3024) — EXIF transpose is required; keep it on all endpoints.
 - Reflective metal + shadows defeat brightness thresholding (not relevant to YOLO path, noted
   for any CV fallback).
+- SSH to m8-server: `ssh -i ~/.ssh/id_ed25519 robin@10.0.0.136`
 
-## Next action
-Begin the capture session per "Chosen plan" step 1, then set up the Roboflow project.
+## Next action (when training data collection is complete)
+1. Bulk-upload images from `~/yolo-amd/models/training/` to a new Roboflow project.
+2. Auto-label with Grounding DINO ("bolt", "hex nut", "washer", "wood screw") — the item
+   count in each filename (e.g. `_5x.jpg`) tells you how many boxes to expect per image.
+3. Manual review: correct missed/wrong boxes, especially overlapping items.
+4. Export as YOLOv8 format, 70/20/10 split.
+5. Train on RTX 3060 (`ollama-nvidia` GPU): `yolo train model=yolov8s.pt data=...`
+6. Evaluate per-class mAP — target washers and bolt/screw confusion specifically.
+7. Drop new weights into `/models/<new>/weights/best.pt`, update path in `server.py`,
+   rebuild yolo-amd, restart.
+8. Re-enable per-class counts + detections array in `server.py`.
+9. Restore analyze mode in `index.html` (see git history for renderBoxes implementation).
