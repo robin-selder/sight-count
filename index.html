@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Sight Count — Training</title>
+<title>Sight Count</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -651,6 +651,60 @@
     from { opacity: 0; transform: translateY(12px); }
     to   { opacity: 1; transform: translateY(0); }
   }
+
+  /* ── MODE BUTTONS (home) ── */
+  .mode-btns {
+    margin-top: 28px;
+    width: 100%;
+    display: flex;
+    gap: 12px;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.65s forwards;
+  }
+  .mode-btn {
+    flex: 1;
+    padding: 18px 12px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .mode-btn:active { transform: scale(0.97); }
+  .mode-btn.hw  { background: var(--accent); color: #0a0a0a; border: none; }
+  .mode-btn.dom { background: transparent; color: var(--text); border: 1px solid var(--border); }
+
+  /* ── CAMERA MODE — hardware-only sections hidden in domino mode ── */
+  .hardware-only { display: flex; flex-direction: column; }
+  #camera-screen[data-mode="domino"] .hardware-only { display: none; }
+
+  /* ── DOMINO RESULT OVERLAY ── */
+  #domino-result {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+    background: rgba(0,0,0,0.55);
+    pointer-events: none;
+  }
+  #domino-result.show { display: flex; }
+  .domino-result-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(80px, 22vw, 160px);
+    color: var(--accent);
+    line-height: 1;
+  }
+  .domino-result-label {
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
 </style>
 </head>
 <body>
@@ -661,14 +715,16 @@
 <!-- ── HOME ── -->
 <div id="home">
   <div class="home-corner tl">SIGHT COUNT</div>
-  <div class="home-corner tr">TRAINING</div>
 
   <div class="home-content">
-    <div class="eyebrow">Training Data Collector</div>
+    <div class="eyebrow">Vision Counter</div>
     <div class="logo">SIGHT<br><span>COUNT</span></div>
-    <div class="tagline">Capture · Label · Train</div>
+    <div class="tagline">Hardware · Domino</div>
     <div class="progress-grid" id="progress-grid"></div>
-    <button class="start-btn" onclick="startCamera()">Start Collecting</button>
+    <div class="mode-btns">
+      <button class="mode-btn hw"  onclick="startHardware()">Hardware</button>
+      <button class="mode-btn dom" onclick="startDomino()">Domino</button>
+    </div>
   </div>
 
   <button class="home-foot-btn" id="server-btn" onclick="showConfig()">⚙ Server</button>
@@ -678,25 +734,27 @@
 <!-- ── CAMERA SCREEN ── -->
 <div id="camera-screen">
 
-  <!-- Row 1: Class selector -->
-  <div class="class-tabs">
-    <button class="class-tab" data-cls="bolt"   onclick="selectClass('bolt')">BOLT</button>
-    <button class="class-tab" data-cls="nut"    onclick="selectClass('nut')">NUT</button>
-    <button class="class-tab" data-cls="washer" onclick="selectClass('washer')">WASHER</button>
-    <button class="class-tab" data-cls="screw"  onclick="selectClass('screw')">SCREW</button>
-  </div>
-
-  <!-- Row 2: Shooting tip + item count stepper -->
-  <div class="info-bar">
-    <div class="info-tip">
-      <em>Same size &amp; type</em> per shot<br>
-      Vary background &amp; lighting each time
+  <div class="hardware-only">
+    <!-- Row 1: Class selector -->
+    <div class="class-tabs">
+      <button class="class-tab" data-cls="bolt"   onclick="selectClass('bolt')">BOLT</button>
+      <button class="class-tab" data-cls="nut"    onclick="selectClass('nut')">NUT</button>
+      <button class="class-tab" data-cls="washer" onclick="selectClass('washer')">WASHER</button>
+      <button class="class-tab" data-cls="screw"  onclick="selectClass('screw')">SCREW</button>
     </div>
-    <span class="step-label">ITEMS</span>
-    <div class="stepper">
-      <button class="step-btn" onclick="adjustCount(-1)">−</button>
-      <span class="step-val" id="item-count-val">5</span>
-      <button class="step-btn" onclick="adjustCount(1)">+</button>
+
+    <!-- Row 2: Shooting tip + item count stepper -->
+    <div class="info-bar">
+      <div class="info-tip">
+        <em>Same size &amp; type</em> per shot<br>
+        Vary background &amp; lighting each time
+      </div>
+      <span class="step-label">ITEMS</span>
+      <div class="stepper">
+        <button class="step-btn" onclick="adjustCount(-1)">−</button>
+        <span class="step-val" id="item-count-val">5</span>
+        <button class="step-btn" onclick="adjustCount(1)">+</button>
+      </div>
     </div>
   </div>
 
@@ -704,6 +762,12 @@
   <div class="video-wrap">
     <video id="video" autoplay playsinline muted></video>
     <canvas id="result-canvas"></canvas>
+
+    <!-- Domino dot count result — shown after /domino/count returns -->
+    <div id="domino-result">
+      <div class="domino-result-num" id="domino-num">0</div>
+      <div class="domino-result-label">total dots</div>
+    </div>
 
     <div class="bracket tl"></div>
     <div class="bracket tr"></div>
@@ -810,6 +874,7 @@
 
   let apiBase      = localStorage.getItem('sight-count-api') || DEFAULT_API;
   let stream       = null;
+  let appMode      = null; // 'hardware' | 'domino'
   let activeClass  = 'bolt';
   let itemCount    = 5;
   let capturedBlob = null;
@@ -907,10 +972,16 @@
     hudCount.textContent      = `${getCount(cls)} / ${TARGET}`;
   }
 
+  // ── Mode entry points ──
+  function startHardware() { appMode = 'hardware'; startCamera(); }
+  function startDomino()   { appMode = 'domino';   startCamera(); }
+
   // ── Camera ──
   async function startCamera() {
     document.getElementById('home').style.display = 'none';
-    document.getElementById('camera-screen').classList.add('active');
+    const camScreen = document.getElementById('camera-screen');
+    camScreen.setAttribute('data-mode', appMode);
+    camScreen.classList.add('active');
 
     try {
       stream = await navigator.mediaDevices.getUserMedia({
@@ -925,12 +996,24 @@
       return;
     }
 
-    selectClass('bolt');
+    if (appMode === 'hardware') {
+      saveBtn.textContent = 'Save';
+      selectClass('bolt');
+    } else {
+      hudClass.textContent      = 'DOMINO';
+      hudClass.style.color      = 'var(--accent)';
+      hudCount.textContent      = '';
+      saveBtn.textContent       = 'Count';
+      saveBtn.style.borderColor = 'var(--accent)';
+      saveBtn.style.color       = 'var(--accent)';
+    }
   }
 
   function stopCamera() {
     if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
-    document.getElementById('camera-screen').classList.remove('active');
+    const camScreen = document.getElementById('camera-screen');
+    camScreen.classList.remove('active');
+    camScreen.removeAttribute('data-mode');
     document.getElementById('home').style.display = '';
     renderProgress();
   }
@@ -939,6 +1022,7 @@
     capturedBlob = null;
     video.style.display = 'block';
     resultCanvas.classList.remove('show');
+    document.getElementById('domino-result').classList.remove('show');
     captureBtn.hidden = false;
     saveBtn.hidden    = true;
     retakeBtn.hidden  = true;
@@ -973,9 +1057,11 @@
     backBtn.hidden    = true;
   }
 
-  // ── Save (server upload → local fallback) ──
+  // ── Save (server upload → local fallback) — hardware mode ──
   async function saveCapture() {
     if (!capturedBlob || isSaving) return;
+    if (appMode === 'domino') { await countDomino(); return; }
+
     isSaving = true;
     saveBtn.textContent = 'Saving…';
     saveBtn.disabled    = true;
@@ -994,6 +1080,40 @@
       hudCount.textContent = `${getCount(activeClass)} / ${TARGET}`;
       retake();
     }
+  }
+
+  // ── Domino dot count (POST to /domino/count) ──
+  async function countDomino() {
+    isSaving = true;
+    saveBtn.textContent = 'Counting…';
+    saveBtn.disabled    = true;
+
+    const form = new FormData();
+    form.append('file', new File([capturedBlob], 'domino.jpg', { type: 'image/jpeg' }), 'domino.jpg');
+
+    const ctrl = new AbortController();
+    const tid  = setTimeout(() => ctrl.abort(), 8000);
+    try {
+      const res = await fetch(`${apiBase}/domino/count`, {
+        method: 'POST', body: form, signal: ctrl.signal,
+      });
+      clearTimeout(tid);
+      if (res.ok) {
+        const data = await res.json();
+        document.getElementById('domino-num').textContent = data.total;
+        document.getElementById('domino-result').classList.add('show');
+        hudCount.textContent = `${data.total} dots`;
+      } else {
+        showToast('Count failed — server error');
+      }
+    } catch {
+      clearTimeout(tid);
+      showToast('Server unreachable — check ⚙ Server URL');
+    }
+
+    saveBtn.textContent = 'Count';
+    saveBtn.disabled    = false;
+    isSaving = false;
   }
 
   async function tryServerUpload(fname) {
