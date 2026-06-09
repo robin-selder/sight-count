@@ -680,6 +680,18 @@
   .hardware-only { display: flex; flex-direction: column; }
   #camera-screen[data-mode="domino"] .hardware-only { display: none; }
 
+  /* ── NUMBER INPUT — matches step-val span appearance ── */
+  input.step-val {
+    background: transparent;
+    border: none;
+    outline: none;
+    appearance: textfield;
+    -moz-appearance: textfield;
+    width: 40px;
+  }
+  input.step-val::-webkit-outer-spin-button,
+  input.step-val::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
   /* ── DOMINO RESULT OVERLAY ── */
   #domino-result {
     position: absolute;
@@ -742,19 +754,20 @@
       <button class="class-tab" data-cls="washer" onclick="selectClass('washer')">WASHER</button>
       <button class="class-tab" data-cls="screw"  onclick="selectClass('screw')">SCREW</button>
     </div>
+  </div>
 
-    <!-- Row 2: Shooting tip + item count stepper -->
-    <div class="info-bar">
-      <div class="info-tip">
-        <em>Same size &amp; type</em> per shot<br>
-        Vary background &amp; lighting each time
-      </div>
-      <span class="step-label">ITEMS</span>
-      <div class="stepper">
-        <button class="step-btn" onclick="adjustCount(-1)">−</button>
-        <span class="step-val" id="item-count-val">5</span>
-        <button class="step-btn" onclick="adjustCount(1)">+</button>
-      </div>
+  <!-- Row 2: Shooting tip + count stepper (hardware and domino training) -->
+  <div class="info-bar">
+    <div class="info-tip" id="info-tip">
+      <em>Same size &amp; type</em> per shot<br>
+      Vary background &amp; lighting each time
+    </div>
+    <span class="step-label" id="step-label">ITEMS</span>
+    <div class="stepper">
+      <button class="step-btn" onclick="adjustCount(-1)">−</button>
+      <input type="number" class="step-val" id="item-count-val"
+             value="5" min="1" max="99" inputmode="numeric" onblur="syncCount()">
+      <button class="step-btn" onclick="adjustCount(1)">+</button>
     </div>
   </div>
 
@@ -870,13 +883,13 @@
     { key: 'washer', label: 'WASHER', color: '#c847ff' },
     { key: 'screw',  label: 'SCREW',  color: '#ff8c47' },
   ];
-  const TARGET = 200;
+  const TARGET        = 200;
+  const DOMINO_TARGET = 200;
 
   let apiBase      = localStorage.getItem('sight-count-api') || DEFAULT_API;
   let stream       = null;
   let appMode      = null; // 'hardware' | 'domino'
   let activeClass  = 'bolt';
-  let itemCount    = 5;
   let capturedBlob = null;
   let isSaving     = false;
 
@@ -903,6 +916,14 @@
     localStorage.setItem(`sc-training-${cls}`, n);
     return n;
   }
+  function getDominoCount() {
+    return parseInt(localStorage.getItem('sc-training-domino') || '0', 10);
+  }
+  function incDominoCount() {
+    const n = getDominoCount() + 1;
+    localStorage.setItem('sc-training-domino', n);
+    return n;
+  }
 
   // ── Toast ──
   let toastTimer;
@@ -914,21 +935,27 @@
   }
 
   // ── Home progress ──
+  function progressRow(label, color, count, target) {
+    const pct = Math.min(100, (count / target) * 100).toFixed(1);
+    return `<div class="progress-row">
+      <div class="progress-meta">
+        <span class="progress-label" style="color:${color}">${label}</span>
+        <span class="progress-count">${count} / ${target}</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width:${pct}%;background:${color}"></div>
+      </div>
+    </div>`;
+  }
+
   function renderProgress() {
     const grid = document.getElementById('progress-grid');
-    grid.innerHTML = CLASSES.map(c => {
-      const count = getCount(c.key);
-      const pct   = Math.min(100, (count / TARGET) * 100).toFixed(1);
-      return `<div class="progress-row">
-        <div class="progress-meta">
-          <span class="progress-label" style="color:${c.color}">${c.label}</span>
-          <span class="progress-count">${count} / ${TARGET}</span>
-        </div>
-        <div class="progress-track">
-          <div class="progress-fill" style="width:${pct}%;background:${c.color}"></div>
-        </div>
-      </div>`;
-    }).join('');
+    const hw   = CLASSES.map(c => progressRow(c.label, c.color, getCount(c.key), TARGET)).join('');
+    const dc   = getDominoCount();
+    const dm   = `<div style="border-top:1px solid var(--border);margin-top:2px;padding-top:8px">
+      ${progressRow('DOMINO', 'var(--accent)', dc, DOMINO_TARGET)}
+    </div>`;
+    grid.innerHTML = hw + dm;
   }
 
   // ── Guide ──
@@ -949,8 +976,16 @@
 
   // ── Item count stepper ──
   function adjustCount(delta) {
-    itemCount = Math.max(1, Math.min(99, itemCount + delta));
-    document.getElementById('item-count-val').textContent = itemCount;
+    const inp = document.getElementById('item-count-val');
+    inp.value = Math.max(1, Math.min(99, (parseInt(inp.value, 10) || 1) + delta));
+  }
+  function syncCount() {
+    const inp = document.getElementById('item-count-val');
+    const v   = parseInt(inp.value, 10);
+    inp.value = isNaN(v) ? 1 : Math.max(1, Math.min(99, v));
+  }
+  function getItemCount() {
+    return parseInt(document.getElementById('item-count-val').value, 10) || 1;
   }
 
   // ── Class selection ──
@@ -997,13 +1032,19 @@
     }
 
     if (appMode === 'hardware') {
+      document.getElementById('step-label').textContent = 'ITEMS';
+      document.getElementById('info-tip').innerHTML =
+        '<em>Same size &amp; type</em> per shot<br>Vary background &amp; lighting each time';
       saveBtn.textContent = 'Save';
       selectClass('bolt');
     } else {
+      document.getElementById('step-label').textContent = 'PIPS';
+      document.getElementById('info-tip').innerHTML =
+        '<em>Count total pips</em> before shooting<br>Vary tile count &amp; arrangement each time';
       hudClass.textContent      = 'DOMINO';
       hudClass.style.color      = 'var(--accent)';
-      hudCount.textContent      = '';
-      saveBtn.textContent       = 'Count';
+      hudCount.textContent      = `${getDominoCount()} / ${DOMINO_TARGET}`;
+      saveBtn.textContent       = 'Save';
       saveBtn.style.borderColor = 'var(--accent)';
       saveBtn.style.color       = 'var(--accent)';
     }
@@ -1057,19 +1098,33 @@
     backBtn.hidden    = true;
   }
 
-  // ── Save (server upload → local fallback) — hardware mode ──
+  // ── Save (server upload → local fallback) ──
   async function saveCapture() {
     if (!capturedBlob || isSaving) return;
-    if (appMode === 'domino') { await countDomino(); return; }
-
     isSaving = true;
     saveBtn.textContent = 'Saving…';
     saveBtn.disabled    = true;
 
-    const seq   = getCount(activeClass) + 1;
-    const fname = `${activeClass}_${String(seq).padStart(4, '0')}_${itemCount}x.jpg`;
+    const ic = getItemCount();
 
-    const saved = await tryServerUpload(fname) || await tryLocalSave(fname);
+    if (appMode === 'domino') {
+      const seq   = getDominoCount() + 1;
+      const fname = `domino_${String(seq).padStart(4, '0')}_${ic}x.jpg`;
+      const saved = await tryServerUpload(fname, 'domino', ic) || await tryLocalSave(fname);
+      saveBtn.textContent = 'Save';
+      saveBtn.disabled    = false;
+      isSaving = false;
+      if (saved) {
+        const n = incDominoCount();
+        hudCount.textContent = `${n} / ${DOMINO_TARGET}`;
+        retake();
+      }
+      return;
+    }
+
+    const seq   = getCount(activeClass) + 1;
+    const fname = `${activeClass}_${String(seq).padStart(4, '0')}_${ic}x.jpg`;
+    const saved = await tryServerUpload(fname, activeClass, ic) || await tryLocalSave(fname);
 
     saveBtn.textContent = 'Save';
     saveBtn.disabled    = false;
@@ -1116,12 +1171,12 @@
     isSaving = false;
   }
 
-  async function tryServerUpload(fname) {
+  async function tryServerUpload(fname, cls, ic) {
     if (!apiBase) return false;
     const form = new FormData();
     form.append('file', new File([capturedBlob], fname, { type: 'image/jpeg' }), fname);
-    form.append('cls', activeClass);
-    form.append('item_count', String(itemCount));
+    form.append('cls', cls);
+    form.append('item_count', String(ic));
 
     const ctrl = new AbortController();
     const tid  = setTimeout(() => ctrl.abort(), 8000);
