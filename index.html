@@ -679,6 +679,8 @@
   /* ── CAMERA MODE — hardware-only sections hidden in domino mode ── */
   .hardware-only { display: flex; flex-direction: column; }
   #camera-screen[data-mode="domino"] .hardware-only { display: none; }
+  #camera-screen[data-mode="domino"] .step-label,
+  #camera-screen[data-mode="domino"] .stepper { display: none; }
 
   /* ── NUMBER INPUT — matches step-val span appearance ── */
   input.step-val {
@@ -1038,13 +1040,12 @@
       saveBtn.textContent = 'Save';
       selectClass('bolt');
     } else {
-      document.getElementById('step-label').textContent = 'PIPS';
       document.getElementById('info-tip').innerHTML =
-        '<em>Count total pips</em> before shooting<br>Vary tile count &amp; arrangement each time';
+        'Point camera at domino tiles<br>Tap shutter, then <em>Count</em>';
       hudClass.textContent      = 'DOMINO';
       hudClass.style.color      = 'var(--accent)';
-      hudCount.textContent      = `${getDominoCount()} / ${DOMINO_TARGET}`;
-      saveBtn.textContent       = 'Save';
+      hudCount.textContent      = '— dots';
+      saveBtn.textContent       = 'Count';
       saveBtn.style.borderColor = 'var(--accent)';
       saveBtn.style.color       = 'var(--accent)';
     }
@@ -1108,17 +1109,9 @@
     const ic = getItemCount();
 
     if (appMode === 'domino') {
-      const seq   = getDominoCount() + 1;
-      const fname = `domino_${String(seq).padStart(4, '0')}_${ic}x.jpg`;
-      const saved = await tryServerUpload(fname, 'domino', ic) || await tryLocalSave(fname);
-      saveBtn.textContent = 'Save';
-      saveBtn.disabled    = false;
-      isSaving = false;
-      if (saved) {
-        const n = incDominoCount();
-        hudCount.textContent = `${n} / ${DOMINO_TARGET}`;
-        retake();
-      }
+      isSaving = false; // countDomino manages its own isSaving state
+      saveBtn.disabled = false;
+      await countDomino();
       return;
     }
 
@@ -1157,7 +1150,7 @@
         const data = await res.json();
         document.getElementById('domino-num').textContent = data.total;
         document.getElementById('domino-result').classList.add('show');
-        hudCount.textContent = `${data.total} dots`;
+        hudCount.textContent = `${data.total} dot${data.total !== 1 ? 's' : ''}`;
       } else {
         showToast('Count failed — server error');
       }
