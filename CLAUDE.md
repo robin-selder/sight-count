@@ -102,7 +102,7 @@ ability to see the items.
 ## Cloudflare Tunnel
 - Quick tunnel (ephemeral, no account). URL changes only if the `cloudflared` container restarts
   (restarting `yolo-amd` alone does NOT change it — confirmed).
-- Current: `https://kiss-harold-gap-rainbow.trycloudflare.com`
+- Current: `https://controls-capable-jerry-multimedia.trycloudflare.com`
 - Get current URL: `docker logs cloudflared 2>&1 | grep trycloudflare | tail -1`
 - App ⚙ Server button (home screen, bottom-left) updates the base URL saved to localStorage.
 - Future: move to a named tunnel for a stable URL once out of prototype.
