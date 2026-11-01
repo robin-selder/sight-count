@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Sight Count</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#0a0a0a">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -957,6 +961,24 @@
     hudCount.textContent      = `${getCount(cls)} / ${TARGET}`;
   }
 
+  // ── Screen wake lock (keeps screen on while the camera is open) ──
+  let wakeLock = null;
+  async function acquireWakeLock() {
+    try {
+      if ('wakeLock' in navigator && !wakeLock) {
+        wakeLock = await navigator.wakeLock.request('screen');
+        wakeLock.addEventListener('release', () => { wakeLock = null; });
+      }
+    } catch { /* unsupported or denied — non-fatal */ }
+  }
+  function releaseWakeLock() {
+    if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+  }
+  // The browser drops the lock when the tab is hidden; re-acquire on return
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && stream) acquireWakeLock();
+  });
+
   // ── Camera ──
   async function startHardware() {
     document.getElementById('home').style.display = 'none';
@@ -975,11 +997,13 @@
       return;
     }
 
+    acquireWakeLock();
     selectClass(activeClass);
   }
 
   function stopCamera() {
     if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+    releaseWakeLock();
     document.getElementById('camera-screen').classList.remove('active');
     document.getElementById('home').style.display = '';
     renderProgress();
