@@ -1059,6 +1059,8 @@
     const seq   = getCount(activeClass) + 1;
     const fname = `${activeClass}_${String(seq).padStart(4, '0')}_${ic}x.jpg`;
 
+    // Zero-shot (SAM) count starts now but does not hold up saving; it can take a few seconds.
+    const zeroshot = tryServerZeroshot();
     const [serverSaved, modelCount] = await Promise.all([
       tryServerUpload(fname, activeClass, ic),
       tryServerCount(),
@@ -1076,6 +1078,11 @@
         showToast(`model: ${modelCount} · set: ${ic}`, 4000);
       } else if (serverSaved) {
         showToast('saved to server', 2000);
+      }
+      if (serverSaved) {
+        zeroshot.then(zs => {
+          if (zs !== null) showToast(`#${seq} model: ${modelCount ?? '–'} · zs: ${zs} · set: ${ic}`, 5000);
+        });
       }
       retake();
     }
@@ -1113,6 +1120,25 @@
     const tid  = setTimeout(() => ctrl.abort(), 8000);
     try {
       const res = await fetch(`${apiBase}/count?conf=0.20`, {
+        method: 'POST', body: form, signal: ctrl.signal,
+      });
+      clearTimeout(tid);
+      return res.ok ? (await res.json()).total : null;
+    } catch {
+      clearTimeout(tid);
+      return null;
+    }
+  }
+
+  // Second-opinion count from SAM 2 on the server (no training). Null if unavailable.
+  async function tryServerZeroshot() {
+    if (!apiBase || !capturedBlob) return null;
+    const form = new FormData();
+    form.append('file', new File([capturedBlob], 'zs.jpg', { type: 'image/jpeg' }), 'zs.jpg');
+    const ctrl = new AbortController();
+    const tid  = setTimeout(() => ctrl.abort(), 20000);
+    try {
+      const res = await fetch(`${apiBase}/count/zeroshot`, {
         method: 'POST', body: form, signal: ctrl.signal,
       });
       clearTimeout(tid);
