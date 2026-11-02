@@ -63,8 +63,10 @@ not acceptable. Free VRAM is only ~3.6 GB.
   `deploy/zeroshot_proxy.py`). Returns 502 if sam-zs is down and 503 if it refuses (low free VRAM / busy).
   ~5 s per photo; 12/17 exact and 17/17 within ±1 on the first 17 real photos. Not a replacement for the
   retrained YOLO model — a labelling aid and sanity check shown in the save toast.
-- Leftover: the live `server.py` still loads the old domino model and serves `/domino/count` (the app
-  no longer uses it). Removing it would free memory.
+- Domino counting was removed from the server (2026-11-02): no domino model, no `/domino/count`, and
+  `/training/upload` only accepts bolt/nut/washer/screw. Rollback image: `yolo-amd:prev-domino`; old
+  source: `~/yolo-amd/app/server.py.pre-domino-removal`. Domino weights and data remain on disk under
+  `~/yolo-amd/models/` (`domino-*`, `training/domino/`) and were not deleted.
 - `POST /training/upload` (multipart `file`, form fields `cls`, `item_count`) → `{saved, cls, item_count, filename, seq}`
   - Saves EXIF-corrected JPEG to `/models/training/{cls}/` on the host volume.
   - Filename format: `bolt_0001_5x.jpg` (class, sequence, item count per photo).
@@ -160,7 +162,7 @@ The app is currently in **training data collection mode** (inference/analyze dis
     (iOS/Android) or download (desktop) if server unreachable; toast shown on fallback.
   - On save it also calls `/count` and `/count/zeroshot`; toast shows `model: N` immediately and
     `#seq model: N · zs: N · set: N` a few seconds later (zs never blocks saving; silent if unavailable).
-- Domino counting mode was removed (UI only; see "Inference API" for the server leftover).
+- Domino counting mode was removed (UI and server; see "Inference API").
 - Android/PWA: `manifest.webmanifest` + `icon-192.png`/`icon-512.png` allow "Add to Home screen"
   (optional — works in a plain Chrome tab). A screen wake lock keeps the screen on while the camera is open.
   Saved JPEGs come from a canvas, so they have no EXIF rotation tag.
