@@ -120,6 +120,13 @@ lighting gradients, shadows and a finger in frame defeat a hand-built foreground
 - **SAM 2 auto-labelling / zero-shot count (2026-11):** works (12/17 exact, 17/17 ±1). Runs on the
   3060 only inside the guarded `sam-zs` service; ~3 s on 3060, ~100 s CPU (4 cores), ~180 s on the
   680M iGPU. SAM's default 32×32 prompt grid needs ~3 GB; a 20×20 grid fits in ~1.6 GB with the same accuracy.
+- **Local VLM as a crop classifier (2026-11):** not as a counter (VLMs estimate), but as a class check
+  on SAM boxes. `qwen3.5-lite` (4.7B, already on `ollama-amd`, vision-capable) classified 95 SAM crops
+  as bolt/screw/nut/washer: **92/95 (97%)** after correcting the mislabeled folder (see Training data),
+  ~3.3 s/crop on the 680M iGPU, nothing on the 3060. Remaining misses were one extra SAM box, one nut→bolt,
+  one washer→nut. Only 4 screw crops, so screws are barely tested. Moondream is no longer installed and
+  Qwen3-VL was not needed. Test scripts were throwaway (`~/sc-lab/vlm_test.py`, `make_crops.py`); wire it
+  into `tools/autolabel/` as a class check when labelling at scale. Use `think:false` and `num_predict` ~12.
 - **Ultralytics upgrade:** 8.4.60 → 8.4.198 in the training image only (`sc-train`). `yolo-amd` is
   still on 8.4.60; upgrade it only when deploying weights that need it (pin the ROCm torch wheel).
 - **Class-agnostic / zero-shot counting (CountGD, GeCo, CounTR):** no-train, exemplar/zero-shot
@@ -181,10 +188,23 @@ on m8-server (persisted via the existing `/models` volume mount).
 
 | Class  | Images collected | Target |
 |--------|-----------------|--------|
-| bolt   | 6               | 200    |
-| nut    | 6               | 200    |
+| bolt   | 4               | 200    |
+| nut    | 8               | 200    |
 | washer | 4               | 200+   |
-| screw  | 1               | 200    |
+| screw  | 4               | 200    |
+
+**Data-quality finding (2026-11-02):** two photos in `training/bolt/` were actually nuts
+(`bolt_0004_11x`, `bolt_0005_6x`). A local VLM caught it: `qwen3.5-lite` called every crop from those
+photos a "nut", and the user confirmed. They were moved to `training/nut/` as `nut_0007_11x` and
+`nut_0008_6x`, and `bolt_0006_1x` was renumbered to `bolt_0004_1x`. A mislabeled folder would have
+re-created the bolt/nut confusion that broke the old model — spot-check class folders before training.
+
+**Filename sequence rule (do not break):** `/training/upload` names files `{cls}_{count+1}_{N}x.jpg`
+from the number of files already in the folder. Folder contents must stay contiguous (count == highest
+sequence). If you remove or move a file, renumber the rest, otherwise a later upload overwrites an
+existing photo. Training directories are root-owned (written by the container); do file moves from a
+throwaway root container mounting `~/yolo-amd/models/training`. The browser-local progress bars on
+each phone are not corrected by server-side moves.
 
 (`training/domino/` holds 189 images from the removed domino mode; unused.)
 SAM auto-label prototype output for these is in `~/sc-lab/out/` (labels, overlays, `summary.csv`,
