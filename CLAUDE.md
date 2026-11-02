@@ -11,8 +11,8 @@ on m8-server, reached through a Cloudflare tunnel.
 - Single-file deployment: `index.html` at repo root
 
 ## Current Direction (DECIDED)
-Collect real photographs of the actual hardware, label them in Roboflow (auto-label with
-Grounding DINO + manual review), train a YOLO model on that real data, and deploy it as the
+Collect real photographs of the actual hardware, label them (SAM 2 auto-label first pass via
+`tools/autolabel/`, then Roboflow review; Grounding DINO is the alternative), train a YOLO model on that real data, and deploy it as the
 `yolo-amd` inference container. This replaces the current model, which was trained on
 mismatched public data. See "Why the current model fails" below — the fix is a
 domain-matched dataset, not a new platform or a different model architecture.
@@ -27,9 +27,29 @@ All services run in Docker under the `m8-compute-stack` compose stack at `~/dock
 | ollama-nvidia | 11434       | RTX 3060            | Primary LLM (Qwen3 14.8B)               |
 | ollama-amd    | 11435       | Radeon 680M (Vulkan)| Lightweight LLMs (Moondream, Qwen3 1.7b)|
 | whisper-amd   | 9000        | Radeon 680M (ROCm)  | Whisper transcription                   |
+| sam-zs        | — (internal)| RTX 3060 (guarded)  | SAM 2 zero-shot counter, proxied by yolo-amd |
 
-Training note: use the **RTX 3060 (ollama-nvidia's GPU)** for YOLO training runs — it is the
-capable GPU. Inference currently runs on the 680M via ROCm in the yolo-amd container.
+### RTX 3060 VRAM rules (IMPORTANT — shared with the primary agent)
+`ollama-nvidia` keeps `qwen3.5-claw` resident (8.25 GB of the 12 GB card, loaded at
+**num_ctx 73,728**, 2 parallel slots). That is the primary agent (OpenClaw/OpenCode); an OOM there is
+not acceptable. Free VRAM is only ~3.6 GB.
+- Qwen's VRAM is allocated once at load and does not grow under load (measured: constant 8,252 MiB
+  with both slots busy, a 41k-token prompt, and a 2.3 GB ballast held). The risk is a **reload/restart**
+  of `ollama-nvidia` while something else holds VRAM — never leave anything resident on the 3060.
+- **Never send requests to `qwen3.5-claw` yourself with different options.** The Modelfile default
+  `num_ctx` is 114,688 but the running instance is 73,728; a mismatched request makes Ollama reload the model.
+- CUDA has no preemption: a process cannot "yield" VRAM. Safety comes from a reserve + preflight, not eviction.
+- `sam-zs` is built for this: its controller has no CUDA (zero idle VRAM), each count runs in a
+  short-lived worker capped at `SAM_BUDGET_MIB=2150`, and it returns 503 if less than
+  `SAM_MIN_FREE_MIB=3400` is free. Measured peak while counting: ~+1.8 GB over baseline.
+- Any training run on the 3060 is the same concern (YOLO11s smoke test, batch 8, peaked +1.5 GB). Do
+  not start one without the user choosing when (e.g. agent idle).
+- The dashboard's "44% → 55%" the user saw was host **RAM**, not VRAM (VRAM baseline is 67%).
+- Training/lab containers: image `sc-train:latest` (ultralytics 8.4.198 + CUDA). Always run with
+  `-w /tmp` — the base image's `/ultralytics` checkout shadows the upgraded package. Scratch dir `~/sc-lab/`.
+- SAM 2 also runs on the 680M iGPU but takes ~170–195 s/image (vs ~3 s on the 3060, ~100 s on 4 CPU
+  cores), so it is only usable as an overnight offline batch there.
+- Inference runs on the 680M via ROCm in the yolo-amd container.
 
 ## Inference API (yolo-amd container)
 - Model path in container: `/models/fasteners-combined/weights/best.pt` (to be replaced)
@@ -38,6 +58,13 @@ capable GPU. Inference currently runs on the 680M via ROCm in the yolo-amd conta
   - Returns total count only. Per-class output was intentionally dropped due to
     bolt/screw confusion in the current model. Re-enable per-class + detections array
     once the retrained model is accurate.
+- `POST /count/zeroshot` (multipart `file`) → `{total, boxes, ms, attempts, peak_mib}` — second-opinion
+  count from SAM 2 (no training). Proxies to the `sam-zs` container (`deploy/zeroshot/`,
+  `deploy/zeroshot_proxy.py`). Returns 502 if sam-zs is down and 503 if it refuses (low free VRAM / busy).
+  ~5 s per photo; 12/17 exact and 17/17 within ±1 on the first 17 real photos. Not a replacement for the
+  retrained YOLO model — a labelling aid and sanity check shown in the save toast.
+- Leftover: the live `server.py` still loads the old domino model and serves `/domino/count` (the app
+  no longer uses it). Removing it would free memory.
 - `POST /training/upload` (multipart `file`, form fields `cls`, `item_count`) → `{saved, cls, item_count, filename, seq}`
   - Saves EXIF-corrected JPEG to `/models/training/{cls}/` on the host volume.
   - Filename format: `bolt_0001_5x.jpg` (class, sequence, item count per photo).
@@ -54,20 +81,29 @@ The current model combines TWO public Roboflow Universe datasets. It is not a pl
 and not synthetic data — it is **domain gap + conflicting labels**:
 - The public images don't match real-world photos (camera, lighting, background, the specific
   zinc/brass finish, scale), so the model never learned features matching actual captures.
-- Evidence: at `conf=0.01` the model returns ~zero/noise on real photos, yet a one-line HSV
-  **saturation threshold cleanly isolates every nut/bolt/washer** (see "Segmentation is solved").
-  The items are trivially present; the detector just wasn't trained on matching images.
+- Evidence: at `conf=0.01` the model returns ~zero/noise on real photos, yet SAM 2 finds every
+  item in the same photos (see "Segmentation — what actually works"). The items are clearly
+  present; the detector just wasn't trained on matching images.
 - Merging two datasets made it worse: dataset A's "bolt" vs dataset B's "screw" gave
   contradictory supervision (→ bolt/screw confusion). Washers were underrepresented
   (~13.2% mAP). DO NOT fix this by combining more public datasets.
 
-## Segmentation is solved (important evidence)
-A simple HSV saturation Otsu threshold (`cv_count2.py`) produces near-perfect binary masks of
-the hardware on both white-paper and grey-table backgrounds — clean rings/blobs, black
-background. Implication: the hard part (separating metal from background) is easy in this
-domain, so a YOLO model trained on real photos should perform very well. The only thing that
-ever failed at counting was blob-splitting params in a hand-rolled watershed — not the model's
-ability to see the items.
+## Segmentation — what actually works (important evidence)
+**Correction (2026-11):** the earlier claim that an HSV saturation threshold isolates everything
+was only true for the brass/yellow-zinc parts. On grey/silver items (washers, zinc screws) it
+rejected them (7/17 exact counts; 0 on the zinc screws).
+
+What works: **SAM 2 automatic masks + a few filters** (`deploy/zeroshot/zs_core.py`): Lab colour
+distance from the background colour (not saturation), reject smooth colourless masks (shadows),
+reject masks spanning most of the image (paper edges / the dark UI strip in some screenshots),
+drop parts of a larger mask (heads/threads, and washer/nut holes via the filled outline), and size
+consistency. That gets **12/17 exact, 17/17 within ±1** on the first real photos (vs filename counts).
+The remaining misses are heavily overlapping bolts, merged screws, and one off-by-one nut/washer
+photo — review those by eye when labelling.
+
+Classical CV counting without SAM does not work here: three attempts (colour distance from median,
+fitted background surface, local texture, each + watershed) scored 2/17, 1/17 and 0/17. Strong
+lighting gradients, shadows and a finger in frame defeat a hand-built foreground model. Don't retry.
 
 ## Approaches evaluated (history — don't re-litigate)
 - **Current YOLO (public combined dataset):** fails on real photos. Root cause above.
@@ -77,9 +113,13 @@ ability to see the items.
   rather than enumerate — not acceptable for an accurate counter.
 - **Classical CV — brightness threshold (`cv_count.py`):** failed; reflective metal + shadow
   gradient broke brightness-based Otsu.
-- **Classical CV — saturation threshold (`cv_count2.py`):** segmentation excellent; only the
-  counting/splitting step needs work. Viable same-day fallback via Hough circles for round
-  items (nuts/washers) + connected components for separated bolts/screws.
+- **Classical CV — saturation threshold (`cv_count2.py`):** worked on brass parts only; fails on
+  grey/silver (see "Segmentation — what actually works"). Not a viable fallback.
+- **SAM 2 auto-labelling / zero-shot count (2026-11):** works (12/17 exact, 17/17 ±1). Runs on the
+  3060 only inside the guarded `sam-zs` service; ~3 s on 3060, ~100 s CPU (4 cores), ~180 s on the
+  680M iGPU. SAM's default 32×32 prompt grid needs ~3 GB; a 20×20 grid fits in ~1.6 GB with the same accuracy.
+- **Ultralytics upgrade:** 8.4.60 → 8.4.198 in the training image only (`sc-train`). `yolo-amd` is
+  still on 8.4.60; upgrade it only when deploying weights that need it (pin the ROCm torch wheel).
 - **Class-agnostic / zero-shot counting (CountGD, GeCo, CounTR):** no-train, exemplar/zero-shot
   counters that run on the 3060 — fallback option if we ever want to avoid training.
 
@@ -117,7 +157,13 @@ The app is currently in **training data collection mode** (inference/analyze dis
     stepper (− / N / +, default 5). Item count is embedded in the saved filename.
   - Viewfinder → tap shutter → flash → frozen frame preview → Save or Retake.
   - Save flow: POST to `/training/upload` on server (8 s timeout) → fallback to Web Share
-    (iOS) or download (desktop) if server unreachable; toast shown on fallback.
+    (iOS/Android) or download (desktop) if server unreachable; toast shown on fallback.
+  - On save it also calls `/count` and `/count/zeroshot`; toast shows `model: N` immediately and
+    `#seq model: N · zs: N · set: N` a few seconds later (zs never blocks saving; silent if unavailable).
+- Domino counting mode was removed (UI only; see "Inference API" for the server leftover).
+- Android/PWA: `manifest.webmanifest` + `icon-192.png`/`icon-512.png` allow "Add to Home screen"
+  (optional — works in a plain Chrome tab). A screen wake lock keeps the screen on while the camera is open.
+  Saved JPEGs come from a canvas, so they have no EXIF rotation tag.
 - ⚙ Server button (home, bottom-left) sets the Cloudflare tunnel URL.
 - ? Guide button (home, bottom-right) opens the collection guide modal.
 - Dark industrial aesthetic, Bebas Neue + DM Mono, accent `#e8ff47`.
@@ -127,16 +173,20 @@ re-add the result overlay and bounding-box renderer, and re-enable per-class + d
 in `server.py`. The JS skeleton for bounding boxes is gone from index.html now — refer to
 git history (commit `33c631b`) for the original renderBoxes() implementation.
 
-## Training data — current status (as of 2026-06-08)
+## Training data — current status (as of 2026-11-02)
 Collection is **in progress**. Images upload automatically to `~/yolo-amd/models/training/`
 on m8-server (persisted via the existing `/models` volume mount).
 
 | Class  | Images collected | Target |
 |--------|-----------------|--------|
-| bolt   | 3               | 200    |
-| nut    | 2               | 200    |
-| washer | 1               | 200+   |
-| screw  | 0               | 200    |
+| bolt   | 6               | 200    |
+| nut    | 6               | 200    |
+| washer | 4               | 200+   |
+| screw  | 1               | 200    |
+
+(`training/domino/` holds 189 images from the removed domino mode; unused.)
+SAM auto-label prototype output for these is in `~/sc-lab/out/` (labels, overlays, `summary.csv`,
+raw-mask `cache/`). Root-owned (written by containers).
 
 Check live counts: `find ~/yolo-amd/models/training -type f | sort`
 
@@ -149,11 +199,15 @@ Check live counts: `find ~/yolo-amd/models/training -type f | sort`
 
 ## Next action (when training data collection is complete)
 1. Bulk-upload images from `~/yolo-amd/models/training/` to a new Roboflow project.
-2. Auto-label with Grounding DINO ("bolt", "hex nut", "washer", "wood screw") — the item
-   count in each filename (e.g. `_5x.jpg`) tells you how many boxes to expect per image.
+2. Auto-label: run `tools/autolabel/autolabel.py` (SAM 2) over the folder — the item count in each
+   filename (e.g. `_5x.jpg`) tells you how many boxes to expect; images where the found count differs
+   are the ones to review. Run it on the 680M iGPU as an overnight batch (`SC_DEVICE=cuda:0`, throwaway
+   container from the `yolo-amd` image) or briefly on the 3060 only with the VRAM rules above.
+   Grounding DINO ("bolt", "hex nut", "washer", "wood screw") remains an option.
 3. Manual review: correct missed/wrong boxes, especially overlapping items.
 4. Export as YOLOv8 format, 70/20/10 split.
-5. Train on RTX 3060 (`ollama-nvidia` GPU): `yolo train model=yolov8s.pt data=...`
+5. Train on RTX 3060 (`ollama-nvidia` GPU) in the `sc-train` container, batch 8 (see VRAM rules —
+   schedule it with the user): `yolo train model=yolo11s.pt data=...` (or `yolov8s.pt`).
 6. Evaluate per-class mAP — target washers and bolt/screw confusion specifically.
 7. Drop new weights into `/models/<new>/weights/best.pt`, update path in `server.py`,
    rebuild yolo-amd, restart.
