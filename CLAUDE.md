@@ -151,7 +151,7 @@ lighting gradients, shadows and a finger in frame defeat a hand-built foreground
 ## Cloudflare Tunnel
 - Quick tunnel (ephemeral, no account). URL changes only if the `cloudflared` container restarts
   (restarting `yolo-amd` alone does NOT change it — confirmed).
-- Current: `https://imperial-nancy-richmond-surgeons.trycloudflare.com`
+- Current: `https://understood-habits-show-plates.trycloudflare.com`
 - Get current URL: `docker logs cloudflared 2>&1 | grep trycloudflare | tail -1`
 - App ⚙ Server button (home screen, bottom-left) updates the base URL saved to localStorage.
 - Future: move to a named tunnel for a stable URL once out of prototype.
